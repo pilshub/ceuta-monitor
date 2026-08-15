@@ -102,6 +102,12 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #simlegend{position:absolute;left:10px;bottom:42px;z-index:510;background:rgba(3,8,14,.88);border:1px solid var(--line);padding:8px 10px;font-size:9px;line-height:1.9;letter-spacing:.5px;pointer-events:none;max-width:230px}
 #legendbtn{position:absolute;left:10px;bottom:10px;z-index:520;background:rgba(3,8,14,.85);border:1px solid var(--line);color:var(--dim);padding:5px 10px;font-size:9px;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 #legendbtn:hover,#legendbtn.on{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.25)}
+#layersbtn{position:absolute;left:112px;bottom:10px;z-index:520;background:rgba(3,8,14,.85);border:1px solid var(--line);color:var(--dim);padding:5px 10px;font-size:9px;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
+#layersbtn:hover,#layersbtn.on{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.25)}
+#layerspanel{position:absolute;left:10px;bottom:44px;z-index:540;background:rgba(3,8,14,.94);border:1px solid var(--cyan);padding:8px 10px;font-size:9.5px;display:none;max-height:58vh;overflow:auto;width:196px;box-shadow:0 0 18px rgba(0,229,255,.25)}
+#layerspanel label{display:flex;align-items:center;gap:6px;padding:2.5px 0;cursor:pointer;letter-spacing:.4px;color:#b8d4e8;font-size:9.5px}
+#layerspanel input{accent-color:var(--cyan);margin:0;flex:0 0 auto}
+#layerspanel .lyh{color:var(--cyan);font-size:8.5px;letter-spacing:2px;margin:4px 0 2px;border-bottom:1px solid var(--line);padding-bottom:2px}
 #simlegend b{color:#b8d4e8;font-size:9px}
 #simlegend .row{display:flex;align-items:center;gap:6px}
 #simlegend .sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
@@ -247,6 +253,8 @@ footer a{color:var(--cyan)}
   <div class="radar-badge">◉ RADAR ACTIVO</div>
   <button id="simtoggle">⏸ SIM ON</button>
   <button id="legendbtn" title="Mostrar/ocultar leyenda">Σ LEYENDA</button>
+  <button id="layersbtn" title="Capas del mapa">⚙ CAPAS</button>
+  <div id="layerspanel"></div>
   <div id="simlegend">
     <b>LEYENDA</b>
     <div class="row"><span class="sw" style="background:#ff8c00"></span> Inmigrantes (España)</div>
@@ -317,6 +325,9 @@ footer a{color:var(--cyan)}
         <div class="fl"><span>Policía (DGSN)</span><b>~350</b></div>
         <div class="fl"><span>Gendarmería Real</span><b>~600</b></div>
         <div class="fl"><span>FAR (despliegue frontera)</span><b>var.</b></div>
+        <div class="ma">MIGRACIÓN · 24 H (según feed)</div>
+        <div class="fl"><span>España (Ceuta)</span><b id="mig_es">—</b></div>
+        <div class="fl"><span>Marruecos (frontera)</span><b id="mig_ma">—</b></div>
         <div class="note">Estimaciones de fuentes públicas — en crisis el despliegue FAR supera los 9.000 efectivos</div>
       </div>
     </div>
@@ -470,12 +481,15 @@ const INFRA=[
   {n:"Comisaría DGSN Fnideq",c:[35.8395,-5.3845],i:"👮",ma:true,d:"Policía Marroquí (DGSN) · comisaría de Fnideq. ~350 efectivos."},
   {n:"Puesto fronterizo marroquí",c:[35.8910,-5.3550],i:"⛨",ma:true,d:"Puesto fronterizo marroquí · control de acceso sur del Tarajal (Bab Sebta)."}
 ];
+const infraLayer=L.layerGroup();
 INFRA.forEach(x=>{
   const ic=L.divIcon({className:"",html:`<div class="infrapin${x.ma?" ma":""}">${x.i}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
-  L.marker(x.c,{icon:ic,zIndexOffset:x.ma?100:200}).addTo(map)
+  L.marker(x.c,{icon:ic,zIndexOffset:x.ma?100:200})
     .bindTooltip(x.n,{direction:"top",opacity:.9})
-    .bindPopup(`<b style="color:${x.ma?"#ec407a":"var(--cyan)"}">${x.n}</b><br>${esc(x.d)}<br><span style="color:var(--dim)">${x.c[0].toFixed(4)}° N, ${x.c[1].toFixed(4)}° W</span>`);
+    .bindPopup(`<b style="color:${x.ma?"#ec407a":"var(--cyan)"}">${x.n}</b><br>${esc(x.d)}<br><span style="color:var(--dim)">${x.c[0].toFixed(4)}° N, ${x.c[1].toFixed(4)}° W</span>`)
+    .addTo(infraLayer);
 });
+infraLayer.addTo(map);
 
 /* zonas dinamicas + heatmap */
 const zoneMarkers={};
@@ -492,14 +506,16 @@ function refreshZonePopups(){
     zoneMarkers[k].m.setPopupContent("<b style='color:var(--cyan)'>SECTOR · "+items.length+" EVENTO"+(items.length>1?"S":"")+"</b><br>"+
       items.slice(0,5).map(i=>"<span style='color:"+sevColor(i.sev)+"'>["+i.sev+"/10]</span> "+esc(i.title.slice(0,70))).join("<br>"));}
 }
+const heatGroup=L.layerGroup().addTo(map);
 function drawHeat(events){
-  heatLayer.forEach(l=>map.removeLayer(l));heatLayer.length=0;
+  heatLayer.forEach(l=>heatGroup.removeLayer(l));heatLayer.length=0;
   const byZone={};
   events.forEach(e=>{const z=(e.zone&&e.zone.length===2)?e.zone:zoneOf(e.title+" "+(e.desc||""));if(z){const k=z[0]+","+z[1];byZone[k]=byZone[k]||{c:z,n:0,max:0};byZone[k].n++;byZone[k].max=Math.max(byZone[k].max,e.sev);}});
   Object.values(byZone).forEach(z=>{
     const r=350+z.n*90;
-    const l=L.circle(z.c,{radius:r,color:"rgba(0,229,255,.001)",fillColor:z.max>=8?"#ff3b3b":z.max>=6?"#ff8c00":"#00e5ff",fillOpacity:Math.min(.16+z.n*.02,.3)}).addTo(map);
+    const l=L.circle(z.c,{radius:r,color:"rgba(0,229,255,.001)",fillColor:z.max>=8?"#ff3b3b":z.max>=6?"#ff8c00":"#00e5ff",fillOpacity:Math.min(.16+z.n*.02,.3)});
     l.bindTooltip(`${z.n} evento${z.n>1?"s":""} · máx severidad ${z.max}/10`,{direction:"top",opacity:.85});
+    l.addTo(heatGroup);
     heatLayer.push(l);
   });
 }
@@ -520,7 +536,7 @@ function zoneOf(text){const t=norm(text);for(const z in ZONES)if(t.includes(z))r
 
 /* ============ SIMULACIÓN ============ */
 const simCanvas=$("simcanvas"),sctx=simCanvas.getContext("2d");
-let SIM={on:true,ents:[],lastWave:0,lastFrame:0};
+let SIM={on:true,ents:[],lastWave:0,lastFrame:0,vis:{migr:1,migr_ma:1,wave:1,police:1,gc:1,army:1,customs:1,police_ma:1,gendarmerie:1,far:1,ship:1,cross:1}};
 const TARAJAL=[35.8936,-5.3544],BIUTZ=[35.9160,-5.3490],INLAND=[35.8890,-5.3200];
 function sizeSim(){const r=map.getContainer().getBoundingClientRect();
   simCanvas.width=Math.max(1,r.width)*devicePixelRatio;simCanvas.height=Math.max(1,r.height)*devicePixelRatio;
@@ -607,26 +623,27 @@ function seedSim(){
   const zones={};
   ALL.forEach(e=>{const z=(e.zone&&e.zone.length===2)?e.zone:zoneOf(e.title+" "+(e.desc||""));if(z){const k=z[0]+","+z[1];zones[k]=zones[k]||{c:z,n:0};zones[k].n++;}});
   const placed=new Set();
-  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(35,2+z.n*4);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
+  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(120,8+z.n*12);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
   // poblacion base si hay crisis de frontera
   if(frontiera||Object.keys(zones).length<3){
-    const baseZones=[[[35.8926,-5.3368],18],[[35.8900,-5.3300],8],[[35.9167,-5.3833],14],[[35.8894,-5.3198],10],[[35.8840,-5.3180],7]];
+    const baseZones=[[[35.8926,-5.3368],55],[[35.8900,-5.3300],28],[[35.9167,-5.3833],40],[[35.8894,-5.3198],32],[[35.8840,-5.3180],24]];
     baseZones.forEach(([c,n])=>{if(!placed.has(c[0].toFixed(4)))spawnStatic("migr",c,n,16);});
   }
   // lado marroqui
-  const maN=frontiera?55:22;
-  spawnStatic("migr_ma",[35.8384,-5.3863],maN,25);
-  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?20:8,22);
-  spawnStatic("migr_ma",[35.8890,-5.3600],frontiera?14:4,15);
-  // fuerzas ES
-  spawnStatic("police",[35.8893,-5.3105],10,26);spawnStatic("police",[35.8920,-5.3370],6,20);
-  spawnStatic("gc",[35.8875,-5.3090],7,26);spawnStatic("gc",[35.9165,-5.3830],4,18);spawnStatic("gc",[35.8936,-5.3544],3,14);
-  spawnStatic("army",[35.8780,-5.3300],6,26);spawnStatic("army",[35.8883,-5.3053],4,20);spawnStatic("army",[35.8936,-5.3544],4,16);
-  spawnStatic("customs",[35.8940,-5.3110],4,20);
-  // fuerzas MA
-  spawnStatic("police_ma",[35.8395,-5.3845],6,22);
-  spawnStatic("gendarmerie",[35.8370,-5.3880],8,20);spawnStatic("gendarmerie",[35.8910,-5.3550],5,15);
-  spawnStatic("far",[35.8860,-5.3700],10,24);spawnStatic("far",[35.8750,-5.4080],6,20);
+  const maN=frontiera?160:70;
+  spawnStatic("migr_ma",[35.8384,-5.3863],maN,30);
+  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?45:18,24);
+  spawnStatic("migr_ma",[35.8890,-5.3600],frontiera?30:10,18);
+  spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?35:12,26);
+  // fuerzas espanolas: decenas patrullando
+  spawnStatic("police",[35.8893,-5.3105],16,30);spawnStatic("police",[35.8920,-5.3370],10,26);spawnStatic("police",[35.8936,-5.3544],6,18);
+  spawnStatic("gc",[35.8875,-5.3090],12,30);spawnStatic("gc",[35.9165,-5.3830],8,22);spawnStatic("gc",[35.8936,-5.3544],6,18);spawnStatic("gc",[35.8970,-5.3210],5,20);
+  spawnStatic("army",[35.8780,-5.3300],10,30);spawnStatic("army",[35.8883,-5.3053],8,24);spawnStatic("army",[35.8936,-5.3544],8,20);spawnStatic("army",[35.9160,-5.3490],6,18);
+  spawnStatic("customs",[35.8940,-5.3110],6,22);
+  // fuerzas marroquis
+  spawnStatic("police_ma",[35.8395,-5.3845],10,26);
+  spawnStatic("gendarmerie",[35.8370,-5.3880],12,24);spawnStatic("gendarmerie",[35.8910,-5.3550],8,18);
+  spawnStatic("far",[35.8860,-5.3700],14,26);spawnStatic("far",[35.8750,-5.4080],8,22);spawnStatic("far",[35.8900,-5.3620],8,18);
   // barcos
   addShip(FERRY,.00011,.1,"ferry");addShip(FERRY,.00011,.45,"ferry");addShip(FERRY.slice().reverse(),.00011,.25,"ferry");
   addShip(COAST,.00014,0,"patrol");addShip(COAST.slice().reverse(),.00012,.5,"patrol");addShip(COAST,.0001,.3,"patrol");
@@ -647,9 +664,9 @@ function simTick(ts){
   if(!SIM.on){requestAnimationFrame(simTick);return;}
   const now=Date.now();
   // oleadas de entrada si hay crisis de frontera
-  if(ALL.some(e=>e.cat==="FRONTERA / MIGRACIÓN")&&now-SIM.lastWave>5000){
+  if(ALL.some(e=>e.cat==="FRONTERA / MIGRACIÓN")&&now-SIM.lastWave>4000){
     SIM.lastWave=now;
-    spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(6,14)));
+    spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(12,26)));
   }
   const draw=[];
   for(const e of SIM.ents){
@@ -659,6 +676,7 @@ function simTick(ts){
       if(e.t>=1){if(e.kind==="ferry")e.t=0;else{e.t=1;e.dir=-1;}}
       if(e.t<=0&&e.dir<0){e.t=0;e.dir=1;}
     }
+    if(!SIM.vis[e.type])continue;
     const p=entPos(e);
     if(p)draw.push([e,p]);
   }
@@ -707,6 +725,31 @@ $("legendbtn").addEventListener("click",function(){
   this.classList.toggle("on",show);
 });
 if(getComputedStyle($("simlegend")).display!=="none")$("legendbtn").classList.add("on");
+/* capas del mapa: mostrar/ocultar categorias */
+const LAYERS=[
+  ["migr","🟠 Inmigrantes (España)"],["migr_ma","🟡 Inmigrantes (Marruecos)"],["wave","➤ Oleadas de entrada"],
+  ["police","🔵 Policía Nacional"],["gc","🟢 Guardia Civil"],["army","🟤 Ejército (CEG)"],["customs","🟡 Vigilancia Aduanera"],
+  ["police_ma","🟣 Policía Marroquí (DGSN)"],["gendarmerie","🩷 Gendarmería Real"],["far","⬛ FAR"],
+  ["ship","⛴ Buques"],["cross","✝ Fallecidos en el mar"],
+  ["infra","🏛 Infraestructura"],["heat","🔥 Heatmap"]
+];
+const lp=$("layerspanel");
+LAYERS.forEach(([t,label])=>{
+  const l=document.createElement("label");
+  l.innerHTML=`<input type="checkbox" checked> ${label}`;
+  const cb=l.querySelector("input");
+  cb.addEventListener("change",()=>{
+    if(t==="infra"){cb.checked?map.addLayer(infraLayer):map.removeLayer(infraLayer);}
+    else if(t==="heat"){cb.checked?map.addLayer(heatGroup):map.removeLayer(heatGroup);}
+    else SIM.vis[t]=cb.checked?1:0;
+  });
+  lp.appendChild(l);
+});
+$("layersbtn").addEventListener("click",function(){
+  const on=lp.style.display==="none";
+  lp.style.display=on?"block":"none";
+  this.classList.toggle("on",on);
+});
 seedSim();
 requestAnimationFrame(simTick);
 
@@ -757,6 +800,18 @@ function drawIncidents(){
     const n=max[c]||0;
     return `<div class="il"><span class="lb">${c}</span><span class="ib"><i style="width:${(n/total*100).toFixed(0)}%;background:${c==="FRONTERA / MIGRACIÓN"?"#ff8c00":c==="NARCOTRÁFICO"?"#ff3b3b":c==="SUCESO"?"#ffd60a":c==="POLÍTICA"?"#00e5ff":"#5f7a8c"}"></i></span><b style="width:28px;text-align:right">${n}</b></div>`;
   }).join("");
+  // inmigrantes a cada lado de la frontera (derivado del feed 24 h)
+  const migEv=ALL.filter(e=>e.cat==="FRONTERA / MIGRACIÓN");
+  const es=$("mig_es"),ma=$("mig_ma");
+  if(es)es.textContent=migEv.length>0?migEv.length+" eventos · crisis activa":"sin eventos";
+  if(ma){
+    let t=0;
+    migEv.forEach(e=>{
+      const m=(e.title+" "+(e.desc||"")).match(/(?:intercepta|frena|bloquea|frustra|detiene|impide|rechaza)[^.\d]{0,60}(\d{2,4})/i);
+      if(m)t+=+m[1];
+    });
+    ma.textContent=t>0?"~"+t.toLocaleString("es-ES")+" interceptados":"—";
+  }
 }
 
 /* ============ grafica ============ */
