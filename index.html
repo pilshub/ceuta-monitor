@@ -119,7 +119,7 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #simtoggle{position:absolute;top:44px;left:10px;z-index:510}
 #flowbtn{position:absolute;top:44px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 #flowbtn:hover,#flowbtn.on{background:rgba(255,214,10,.25);box-shadow:0 0 12px rgba(255,214,10,.4)}
-#flowbadge{position:absolute;top:80px;left:10px;z-index:520;background:rgba(40,20,0,.92);border:1px solid var(--amber);color:#ffd60a;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:1.5px;animation:warflash 1s infinite}
+#flowbadge{position:absolute;top:78px;left:10px;z-index:520;background:rgba(40,20,0,.95);border:1px solid var(--amber);color:#ffd60a;padding:8px 14px;font-size:13px;font-weight:800;letter-spacing:1.5px;animation:warflash 1s infinite;box-shadow:0 0 18px rgba(255,214,10,.35)}
 
 /* GRID PRINCIPAL */
 .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:12px}
@@ -759,6 +759,9 @@ function simTick(ts){
       for(let i=0;i<n2;i++)spawnWave(BIUTZ,pick(FLOW_DESTS),1);
       FLUJO.count+=n1+n2;
       $("flowcnt").textContent=FLUJO.count;
+      /* destello en el punto de entrada para marcar el flujo */
+      const fp=ll(TARAJAL);WAR.expl.push({x:fp.x,y:fp.y,r:26,side:true,born:performance.now()});
+      const fp2=ll(BIUTZ);WAR.expl.push({x:fp2.x,y:fp2.y,r:20,side:true,born:performance.now()});
     }
     if(FLUJO.count>=400||fnow-FLUJO.start>30000){
       FLUJO.on=false;
@@ -813,8 +816,8 @@ function simTick(ts){
       sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.stroke();
     }
   }
-  /* explosiones del modo guerra encima de todo */
-  if(WAR.on){
+  /* explosiones del modo guerra / destellos del flujo encima de todo */
+  if(WAR.expl.length){
     for(const x of WAR.expl){
       const a=1-(performance.now()-x.born)/650;
       if(a<=0)continue;
