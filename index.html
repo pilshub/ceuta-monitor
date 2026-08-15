@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CEUTA // SITUATION MONITOR</title>
+<meta name="description" content="Monitor de situación de Ceuta en tiempo real: noticias, frontera, migración, severidad 1-10. 6 sensores, actualizado cada 30 min.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ceuta-monitor.vercel.app/">
+<meta property="og:title" content="CEUTA // SITUATION MONITOR">
+<meta property="og:description" content="Vigilancia informativa de Ceuta en tiempo real · severidad 1-10 · 6 sensores · actualizado cada 30 min">
+<meta property="og:image" content="https://ceuta-monitor.vercel.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#030608">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,8 +26,6 @@
   --bg:#030608; --panel:#0a1118; --panel2:#0d1620; --line:#1c2b3a;
   --green:#00ff9d; --cyan:#00e5ff; --amber:#ffd60a; --orange:#ff8c00; --red:#ff3b3b;
   --text:#c9d9e6; --dim:#5f7a8c;
-  --sev1:#00ff9d; --sev2:#00e5ff; --sev3:#00e5ff; --sev4:#ffd60a; --sev5:#ffd60a;
-  --sev6:#ff8c00; --sev7:#ff8c00; --sev8:#ff3b3b; --sev9:#ff3b3b; --sev10:#ff1a1a;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:14px;overflow-x:hidden}
@@ -27,6 +38,15 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:998;
 .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);
   background-size:44px 44px}
+button{background:var(--panel2);color:var(--cyan);border:1px solid var(--line);font-family:inherit;font-size:10px;letter-spacing:2px;padding:7px 12px;cursor:pointer;transition:all .15s}
+button:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.25);color:#fff}
+button:active{transform:scale(.96)}
+button.on{border-color:var(--cyan);background:rgba(0,229,255,.12);color:#fff;box-shadow:0 0 10px rgba(0,229,255,.25)}
+
+/* CRISIS BANNER */
+#crisis{display:none;align-items:center;gap:12px;border:1px solid var(--red);background:linear-gradient(90deg,rgba(255,59,59,.15),rgba(255,59,59,.04));
+  padding:10px 16px;margin-bottom:14px;font-size:12px;letter-spacing:2px;color:#ffd9d9;box-shadow:0 0 30px rgba(255,59,59,.25),inset 0 0 30px rgba(255,59,59,.08);animation:pulse 2s infinite}
+#crisis .big{font-size:15px;font-weight:800;color:#fff;text-shadow:0 0 14px var(--red)}
 
 /* HEADER */
 header{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 18px;border:1px solid var(--line);
@@ -39,7 +59,7 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 @keyframes glitch{0%,92%,100%{text-shadow:0 0 12px rgba(0,229,255,.5)}
   93%{text-shadow:-3px 0 var(--red),3px 0 var(--green)}94%{text-shadow:3px 0 var(--red),-3px 0 var(--green)}95%{text-shadow:0 0 12px rgba(0,229,255,.5)}}
 .h-sub{font-size:10px;color:var(--dim);letter-spacing:4px;text-transform:uppercase;margin-top:2px}
-.h-right{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .clock{font-size:15px;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.6)}
 .clock small{color:var(--dim);font-size:9px;letter-spacing:2px;display:block}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:2px;color:var(--red);border:1px solid rgba(255,59,59,.5);padding:5px 10px;background:rgba(255,59,59,.08)}
@@ -47,19 +67,20 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 @keyframes pulse{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,59,59,.7)}70%{opacity:.6;box-shadow:0 0 0 7px rgba(255,59,59,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,59,59,0)}}
 .status{font-size:10px;color:var(--dim);letter-spacing:1px;text-align:right}
 .status b{color:var(--green);font-weight:600}
+#mute{font-size:15px;padding:5px 10px;line-height:1}
 
 /* GRID MAIN */
 .grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-top:16px}
 @media(max-width:960px){.grid{grid-template-columns:1fr}}
 .panel{border:1px solid var(--line);background:var(--panel);position:relative;overflow:hidden}
 .panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),transparent 70%);opacity:.6}
-.p-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.p-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
 .p-head .tag{font-size:9px;letter-spacing:3px;color:var(--dim);border:1px solid var(--line);padding:2px 7px}
 .p-head h2{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b8d4e8}
 .p-head .sp{flex:1}
 
 /* MAP */
-#map{height:520px;width:100%;background:#04080d;z-index:1}
+#map{height:460px;width:100%;background:#04080d;z-index:1}
 @media(max-width:960px){#map{height:340px}}
 .radar{position:absolute;top:10px;right:10px;z-index:500;font-size:9px;letter-spacing:2px;color:var(--green);
   border:1px solid rgba(0,255,157,.35);background:rgba(3,10,8,.8);padding:4px 8px;animation:pulse 2s infinite;pointer-events:none}
@@ -71,10 +92,10 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 .leaflet-popup-tip{background:#0d1620;border:1px solid var(--cyan)}
 .leaflet-popup-content{margin:10px 12px;font-size:11px;line-height:1.6}
 
-/* THREAT GAUGE */
-.threat{padding:16px 18px;display:flex;flex-direction:column;gap:14px;height:100%;min-height:220px;justify-content:center}
+/* THREAT */
+.threat{padding:14px 18px;display:flex;flex-direction:column;gap:10px;justify-content:center}
 .t-label{font-size:9px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;text-align:center}
-.t-score{font-size:64px;font-weight:800;text-align:center;line-height:1;text-shadow:0 0 30px currentColor}
+.t-score{font-size:58px;font-weight:800;text-align:center;line-height:1;text-shadow:0 0 30px currentColor}
 .t-name{text-align:center;font-size:12px;font-weight:800;letter-spacing:4px;text-transform:uppercase}
 .t-bar{height:12px;border:1px solid var(--line);background:#050a10;position:relative}
 .t-fill{height:100%;width:0%;transition:width 1s ease, background 1s;box-shadow:0 0 14px currentColor}
@@ -82,8 +103,22 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 .t-meta{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);letter-spacing:1px}
 .t-meta b{color:var(--text);font-weight:600}
 
+/* CHART */
+.chart-box{padding:10px 14px}
+.chart-tabs{display:flex;gap:6px;margin-bottom:8px}
+#chart{width:100%;height:130px;display:block;background:#04090f;border:1px solid var(--line)}
+
+/* FILTROS */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(13,22,32,.5)}
+.filters .fcat{font-size:9px;letter-spacing:1px;padding:5px 9px}
+.filters input[type=text]{background:#050a10;border:1px solid var(--line);color:var(--text);font-family:inherit;font-size:11px;padding:6px 10px;width:170px;letter-spacing:.5px}
+.filters input[type=text]:focus{outline:none;border-color:var(--cyan)}
+.filters select{background:#050a10;border:1px solid var(--line);color:var(--cyan);font-family:inherit;font-size:10px;padding:6px 8px;letter-spacing:1px}
+.filters .count{font-size:9px;color:var(--dim);letter-spacing:1px;margin-left:auto}
+.filters .count b{color:var(--cyan)}
+
 /* FEED */
-#feed{max-height:640px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#feed{max-height:620px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 #feed::-webkit-scrollbar{width:6px}#feed::-webkit-scrollbar-thumb{background:var(--line)}
 .card{border:1px solid var(--line);border-left:3px solid var(--dim);background:var(--panel2);padding:11px 14px;margin:10px 12px;
   transition:transform .15s, box-shadow .15s;position:relative;animation:slideIn .4s ease}
@@ -93,13 +128,18 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 .card .sev{font-size:11px;font-weight:800;padding:2px 8px;border:1px solid currentColor;background:rgba(0,0,0,.4);letter-spacing:1px}
 .card .cat{font-size:8px;letter-spacing:2px;color:var(--dim);border:1px solid var(--line);padding:2px 6px}
 .card .t{font-size:12.5px;color:#e8f3fb;margin-top:7px;line-height:1.45;font-weight:600}
-.card .meta{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:9.5px;color:var(--dim);letter-spacing:.5px}
+.card .meta{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:9.5px;color:var(--dim);letter-spacing:.5px;flex-wrap:wrap}
 .card .meta a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted rgba(0,229,255,.4)}
 .card .meta a:hover{color:#fff}
 .card .when{margin-left:auto}
 .mini{display:flex;gap:6px;align-items:center;margin-top:7px}
 .mini .bar{height:3px;flex:1;background:#111c26}
 .mini .bar i{display:block;height:100%;background:currentColor;box-shadow:0 0 6px currentColor}
+.alt-toggle{display:inline-flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1.5px;color:var(--cyan);border:1px solid var(--line);background:rgba(0,229,255,.06);padding:4px 10px;cursor:pointer;margin-top:8px}
+.alt-toggle:hover{border-color:var(--cyan)}
+.alt{display:none;margin-top:8px;border:1px dashed var(--line);padding:8px 10px;font-size:10px;line-height:1.9;background:rgba(0,0,0,.25)}
+.alt a{color:#9fd8ea;text-decoration:none}
+.alt a:hover{color:#fff}
 .empty{padding:30px 20px;text-align:center;color:var(--dim);font-size:11px;letter-spacing:2px}
 .loading{text-align:center;color:var(--cyan);padding:30px;font-size:11px;letter-spacing:3px;animation:pulse 1.2s infinite}
 
@@ -114,10 +154,7 @@ header::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:1
 /* FOOTER */
 footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase}
 footer .src b{color:var(--green);font-weight:600}
-.controls{display:flex;gap:8px}
-button{background:var(--panel2);color:var(--cyan);border:1px solid var(--line);font-family:inherit;font-size:10px;letter-spacing:2px;padding:7px 14px;cursor:pointer;transition:all .15s}
-button:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.25);color:#fff}
-button:active{transform:scale(.96)}
+footer a{color:var(--cyan)}
 .scan{position:fixed;left:0;right:0;height:120px;z-index:997;pointer-events:none;opacity:.35;
   background:linear-gradient(180deg,transparent,rgba(0,229,255,.12),transparent);animation:scan 7s linear infinite}
 @keyframes scan{0%{top:-140px}100%{top:110%}}
@@ -129,6 +166,8 @@ a{color:var(--cyan)}
 <div class="scan"></div>
 <div class="wrap">
 
+<div id="crisis">⚠ <span class="big">MODO CRISIS ACTIVO</span><span>Múltiples eventos de severidad alta detectados en 24 h — protocolo de atención reforzada</span></div>
+
 <header>
   <div>
     <div class="h-title">◤ CEUTA <span class="glitch">//</span> SITUATION MONITOR ◢</div>
@@ -137,18 +176,18 @@ a{color:var(--cyan)}
   <div class="h-right">
     <div class="clock"><small>UTC · SYNC</small><span id="clock">--:--:--</span></div>
     <div class="live"><span class="dot"></span>LIVE FEED</div>
+    <button id="mute" title="Sonido de alerta on/off">🔊</button>
     <div class="status" id="status">SENSORES<br><b>CONECTANDO…</b></div>
   </div>
 </header>
 
 <div class="grid">
-  <div class="panel">
-    <div class="p-head"><span class="tag">GEO</span><h2>Sector de vigilancia · Ceuta</h2></div>
-    <div id="map"></div>
-    <div class="radar">◉ RADAR ACTIVO</div>
-  </div>
-
   <div style="display:grid;grid-template-columns:1fr;gap:16px">
+    <div class="panel">
+      <div class="p-head"><span class="tag">GEO</span><h2>Sector de vigilancia · Ceuta</h2></div>
+      <div id="map"></div>
+      <div class="radar">◉ RADAR ACTIVO</div>
+    </div>
     <div class="panel">
       <div class="p-head"><span class="tag">THREAT</span><h2>Nivel de amenaza</h2></div>
       <div class="threat">
@@ -161,9 +200,29 @@ a{color:var(--cyan)}
       </div>
     </div>
     <div class="panel">
-      <div class="p-head"><span class="tag">FEED</span><h2>Flujo de noticias · prioridad por severidad</h2><span class="sp"></span><button id="refresh">⟳ REFRESCAR</button></div>
-      <div id="feed"><div class="loading">◇ INICIANDO SENSORES…</div></div>
+      <div class="p-head"><span class="tag">CHART</span><h2>Evolución de severidad</h2></div>
+      <div class="chart-box">
+        <div class="chart-tabs">
+          <button id="tab24" class="on" onclick="setChartMode('24h')">24 H</button>
+          <button id="tab7d" onclick="setChartMode('7d')">7 D</button>
+        </div>
+        <canvas id="chart"></canvas>
+      </div>
     </div>
+  </div>
+
+  <div class="panel">
+    <div class="p-head"><span class="tag">FEED</span><h2>Flujo de noticias · prioridad por severidad</h2><span class="sp"></span><button id="refresh">⟳ REFRESCAR</button></div>
+    <div class="filters">
+      <span id="fcats"></span>
+      <select id="fsev" onchange="setMinSev(this.value)">
+        <option value="1">SEV ≥ 1</option><option value="4">SEV ≥ 4</option>
+        <option value="6" selected>SEV ≥ 6</option><option value="8">SEV ≥ 8</option>
+      </select>
+      <input type="text" id="fq" placeholder="🔍 buscar…" oninput="setQ(this.value)">
+      <span class="count" id="fcount">0/0</span>
+    </div>
+    <div id="feed"><div class="loading">◇ INICIANDO SENSORES…</div></div>
   </div>
 </div>
 
@@ -174,7 +233,8 @@ a{color:var(--cyan)}
 
 <footer>
   <div class="src">SENSORES: <b id="srcnames">—</b></div>
-  <div>Actualización automática cada 5 min · clasificación local por severidad 1–10</div>
+  <div>Datos: <b id="updated">—</b> · API: <a href="feed.json" target="_blank">feed.json</a> · <a href="historial.json" target="_blank">historial.json</a></div>
+  <div>Auto-refresh 5 min · severidad 1–10 · <a href="https://github.com/pilshub/ceuta-monitor" target="_blank" rel="noopener">repo</a></div>
 </footer>
 </div>
 
@@ -184,11 +244,12 @@ a{color:var(--cyan)}
 const $=id=>document.getElementById(id);
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-function timeAgo(ts){if(!ts)return "—"; if(ts<1e12)ts*=1000; const d=(Date.now()-ts)/1000;
+const tsMs=t=>t<1e12?t*1000:t;
+function timeAgo(t){if(!t)return "—";const ts=tsMs(t);const d=(Date.now()-ts)/1000;
   if(d<60)return "<1 min";if(d<3600)return Math.floor(d/60)+" min";if(d<86400)return Math.floor(d/3600)+" h";
   const x=new Date(ts);return x.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+x.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});}
 
-/* ============ clasificacion severidad (port del watchdog python) ============ */
+/* ============ clasificacion (fallback directo) ============ */
 const CRIT=["fallecid","fallece","fallecen","muert","muere","mueren","asesin","tirote","apunal","apunalamient","naufrag","salto a la valla","valla de ceuta","atentad","secuestr","violacion","agresion sexual","estado de alarma","derrumbe","colapso","desaparecid","masacre","tragedia","uci","gravemente herido","explosion","hallado muerto","deceso"];
 const HIGH=["patera","rescate","interceptad","desembarco","detenid","narcotr","drog","hachis","alijo","contrabando","incaut","manifestacion","protesta","huelga","incendio","accidente","herid","sentencia","corrupcion","dimision","investigacion","arresto","guardia civil","policia","prision","carcel","frontera","migracion","migrantes","inmigrant","mocion","juicio","denuncia","violencia"];
 const MED=["consejo de gobierno","ciudad autonoma","asamblea","pleno","sanidad","hospital","educacion","empleo","paro","obras","trafico","retencion","puerto","aduana","comercio","vivienda","pensiones","convenio","subvencion","ayuntamiento","gobierno","presupuestos"];
@@ -220,6 +281,7 @@ const FEEDS=[
   {n:"Ceuta Actualidad",u:"https://www.ceutaactualidad.com/rss"},
   {n:"Ceuta TV",u:"https://ceutatv.com/feed/"},
   {n:"RTVCE",u:"https://www.rtvce.es/rss"},
+  {n:"Europa Press",u:"https://www.europapress.es/rss/ceuta/"},
   {n:"Google News",u:"https://news.google.com/rss/search?q=Ceuta&hl=es&gl=ES&ceid=ES:es"}
 ];
 async function fetchText(url){
@@ -239,13 +301,35 @@ function parseRSS(xml){
     title:(it.querySelector("title")?.textContent||"").trim(),
     link:(it.querySelector("link")?.textContent||"").trim(),
     desc:(it.querySelector("description")?.textContent||"").replace(/<[^>]+>/g," ").trim(),
-    ts:(()=>{const d=Date.parse(it.querySelector("pubDate")?.textContent||"");return isNaN(d)?null:d;})()
+    ts:(()=>{const d=Date.parse(it.querySelector("pubDate")?.textContent||"");return isNaN(d)?null:d/1000;})()
   })).filter(i=>i.title&&i.link);
 }
 
-/* ============ estado ============ */
-const WINDOW=24*3600*1000;
-function dedupeKey(t){return norm(t).replace(/\s*[-|\u2014\u2013]\s*(el faro de ceuta|ceuta actualidad|ceuta tv|rtvce|google news|europa press|efe)\s*$/,"");}
+/* ============ estado / clustering ============ */
+const WINDOW=24*3600;
+function dedupeKey(t){return norm(t).replace(/\s*[-|\u2014\u2013]\s*(el faro de ceuta|ceuta actualidad|ceuta tv|rtvce|europa press|google news|efe)\s*$/,"");}
+const STOP=new Set(["de","la","el","en","y","a","los","las","un","una","unos","unas","que","con","por","para","del","al","su","sus","se","lo","como","mas","tras","ante","este","esta","estos","estas","contra","entre","desde","hasta","sobre","segun","tambien","ser","sin","otro","otra","hay","muy","ya","casi","asi","pese","nuevo","nueva","nuevos","nuevas","cerca","decenas","cientos","miles","varios","varias","frente","hacia","medio","medios","hora","horas","dia","dias"]);
+function tBigrams(t){
+  const w=norm(t).split(/\s+/).filter(x=>x.length>3&&!STOP.has(x));
+  const s=new Set();for(let i=0;i<w.length-1;i++)s.add(w[i]+" "+w[i+1]);
+  return s;
+}
+function dice(a,b){if(!a.size||!b.size)return 0;let i=0;for(const x of a)if(b.has(x))i++;return 2*i/(a.size+b.size);}
+function clusterEvents(evs){
+  const clusters=[];
+  for(const e of evs){
+    const tk=tBigrams(e.title);
+    let best=null,bestD=0.42;
+    for(const c of clusters){const d=dice(tk,c.tokens);if(d>bestD){best=c;bestD=d;}}
+    if(best){best.events.push(e);best.tokens=tk;}
+    else clusters.push({events:[e],tokens:tk});
+  }
+  return clusters.map(c=>{
+    const ev=c.events.sort((a,b)=>b.sev-a.sev||(b.ts||0)-(a.ts||0));
+    const main=ev[0];
+    return {...main,media:[...new Set(ev.map(e=>e.src))],alt:ev.slice(1)};
+  });
+}
 
 /* ============ mapa ============ */
 const ZONES={
@@ -256,7 +340,10 @@ const ZONES={
   "puerto":[35.8940,-5.3170],"dique":[35.8920,-5.3110],
   "monte hacho":[35.8970,-5.2890],
   "recinto":[35.8870,-5.3000],
-  "la libertad":[35.8900,-5.3160]
+  "la libertad":[35.8900,-5.3160],
+  "ceti":[35.8980,-5.3240],
+  "avenida lisboa":[35.8890,-5.3080],
+  "frontera del biutz":[35.9160,-5.3490]
 };
 function zoneOf(text){const t=norm(text);for(const z in ZONES)if(t.includes(z))return ZONES[z];return null;}
 const map=L.map("map",{zoomControl:true,attributionControl:true}).setView([35.8894,-5.3198],13);
@@ -268,11 +355,9 @@ const zoneMarkers={};
 function addZoneEvent(ev){
   const z=(ev.zone&&ev.zone.length===2)?ev.zone:zoneOf(ev.title+" "+(ev.desc||""));
   if(!z)return;
-  if(!zoneMarkers[z[0]+","+z[1]]){
-    const m=L.marker(z,{icon:pinIcon}).addTo(map);
-    zoneMarkers[z[0]+","+z[1]]={m,items:[]};
-  }
-  zoneMarkers[z[0]+","+z[1]].items.push(ev);
+  const k=z[0]+","+z[1];
+  if(!zoneMarkers[k])zoneMarkers[k]={m:L.marker(z,{icon:pinIcon}).addTo(map),items:[]};
+  zoneMarkers[k].items.push(ev);
 }
 function refreshZonePopups(){
   for(const k in zoneMarkers){const{items}=zoneMarkers[k];
@@ -285,37 +370,120 @@ function refreshZonePopups(){
 function sevColor(s){return s>=9?"#ff1a1a":s>=7?"#ff3b3b":s>=6?"#ff8c00":s>=4?"#ffd60a":"#00ff9d";}
 function sevLabel(s){return s>=9?"🚨 CRÍTICO":s>=7?"🟠 ELEVADO":s>=6?"🟡 MODERADO":s>=4?"⚪ VIGILANCIA":"🟢 RUTINARIO";}
 function threatName(s){return s>=9?"ALERTA ROJA":s>=7?"RIESGO ELEVADO":s>=6?"RIESGO MODERADO":s>=4?"VIGILANCIA":"NIVEL NORMAL";}
-function render(events,srcOk){
-  const feed=$("feed");
-  if(!events.length){feed.innerHTML='<div class="empty">◇ SIN EVENTOS EN VENTANA 24 H<br><br>Escaneo activo — los sensores se actualizan solos cada 5 min</div>';}
-  else{
-    feed.innerHTML=events.map(e=>{
-      const c=sevColor(e.sev);
-      return `<div class="card" style="border-left-color:${c};color:${c}">
-        <div class="row1"><span class="sev" style="color:${c}">${e.sev}/10</span><span class="cat">${e.cat}</span><span class="cat">${e.src}</span></div>
-        <div class="t">${esc(e.title)}</div>
-        <div class="mini"><span class="bar"><i style="width:${e.sev*10}%"></i></span></div>
-        <div class="meta"><span>${sevLabel(e.sev)}</span><span class="when">${timeAgo(e.ts)}</span><a href="${esc(e.link)}" target="_blank" rel="noopener">⧉ FUENTE</a></div>
-      </div>`;
-    }).join("");
-  }
-  const top=events.length?Math.max(...events.map(e=>e.sev)):0;
-  const score=$("tscore");score.textContent=events.length?top+"/10":"--";
-  score.style.color=sevColor(top);
-  $("tname").textContent=events.length?threatName(top):"ESCANEANDO";
-  $("tfill").style.width=(top*10)+"%";$("tfill").style.background=sevColor(top);$("tfill").style.color=sevColor(top);
-  $("tcount").textContent=events.length;
-  $("tsrc").textContent=srcOk;
-  const top5=events.slice(0,5);
-  $("ticker").innerHTML=(top5.map((e,i)=>`<span class="tk">[${e.sev}/10]</span> ${esc(e.title)}`).join(" &nbsp;◆&nbsp; ")+(top5.length?" &nbsp;◆&nbsp; ":"")+top5.map((e,i)=>`<span class="tk">[${e.sev}/10]</span> ${esc(e.title)}`).join(" &nbsp;◆&nbsp; "));
+let ALL=[],FILTERED=[];
+const F={cat:"TODAS",minSev:6,q:""};
+
+function applyFilters(){
+  FILTERED=ALL.filter(e=>{
+    if(F.cat!=="TODAS"&&e.cat!==F.cat)return false;
+    if(e.sev<F.minSev)return false;
+    if(F.q&&!norm(e.title).includes(norm(F.q)))return false;
+    return true;
+  });
+  $("fcount").textContent=FILTERED.length+"/"+ALL.length;
+  drawFeed();drawChart(CMODE);
 }
-function sevSort(a,b){return b.sev-a.sev||(b.ts||0)-(a.ts||0);}
+function setChartMode(m){CMODE=m;$("tab24").classList.toggle("on",m==="24h");$("tab7d").classList.toggle("on",m==="7d");drawChart(m);}
+function setMinSev(v){F.minSev=+v;applyFilters();}
+function setQ(v){F.q=v;applyFilters();}
+
+function drawFeed(){
+  const feed=$("feed");
+  if(!ALL.length){feed.innerHTML='<div class="empty">◇ SIN EVENTOS EN VENTANA 24 H<br><br>Escaneo activo — los sensores se actualizan solos cada 5 min</div>';return;}
+  if(!FILTERED.length){feed.innerHTML='<div class="empty">◇ NINGÚN EVENTO CUMPLE LOS FILTROS<br><br>Baja la severidad mínima o cambia de categoría</div>';return;}
+  const clusters=clusterEvents(FILTERED);
+  feed.innerHTML=clusters.map(c=>{
+    const col=sevColor(c.sev);
+    const medias=c.media.length>1?`<span class="cat" style="color:var(--cyan);border-color:rgba(0,229,255,.4)">${c.media.length} MEDIOS</span>`:"";
+    const altHtml=c.alt.length?`<div class="alt-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">▸ ${c.alt.length} versión${c.alt.length>1?"es":""} de esta historia</div>
+      <div class="alt">${c.alt.map(a=>`<span style="color:${sevColor(a.sev)}">[${a.sev}/10]</span> ${esc(a.src)} — <a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title.slice(0,90))}…</a>`).join("<br>")}</div>`:"";
+    return `<div class="card" style="border-left-color:${col};color:${col}">
+      <div class="row1"><span class="sev" style="color:${col}">${c.sev}/10</span><span class="cat">${c.cat}</span><span class="cat">${c.src}</span>${medias}</div>
+      <div class="t">${esc(c.title)}</div>
+      <div class="mini"><span class="bar"><i style="width:${c.sev*10}%"></i></span></div>
+      <div class="meta"><span>${sevLabel(c.sev)}</span><span class="when">${timeAgo(c.ts)}</span><a href="${esc(c.link)}" target="_blank" rel="noopener">⧉ FUENTE</a></div>
+      ${altHtml}
+    </div>`;
+  }).join("");
+}
+
+/* ============ grafica ============ */
+let CMODE="24h",HIST={days:{}};
+function drawChart(mode){
+  const cv=$("chart");const ctx=cv.getContext("2d");
+  const W=cv.width=880,H=cv.height=260;ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#04090f";ctx.fillRect(0,0,W,H);
+  let bins=[];
+  if(mode==="24h"){
+    const now=Date.now();
+    for(let i=23;i>=0;i--){const t0=now-i*3600e3;
+      const evs=ALL.filter(e=>{const t=tsMs(e.ts);return t>=t0-3600e3&&t<t0;});
+      bins.push({label:new Date(t0).toLocaleTimeString("es-ES",{hour:"2-digit"}),val:evs.length?Math.max(...evs.map(e=>e.sev)):0});
+    }
+  }else{
+    const days=Object.keys(HIST.days||{}).sort().slice(-7);
+    for(const d of days){
+      const evs=HIST.days[d];
+      bins.push({label:d.slice(5),val:evs.length?Math.max(...evs.map(e=>e.sev)):0});
+    }
+  }
+  if(!bins.length)return;
+  const padL=8,padR=8,padT=14,padB=22;
+  const iw=W-padL-padR,ih=H-padT-padB;
+  // grid
+  ctx.strokeStyle="#12222f";ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){const y=padT+ih*g/4;ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();}
+  // area+linea
+  const step=iw/Math.max(bins.length-1,1);
+  const yOf=v=>padT+ih*(1-v/10);
+  ctx.beginPath();
+  bins.forEach((b,i)=>{const x=padL+i*step;if(i===0)ctx.moveTo(x,yOf(b.val));else ctx.lineTo(x,yOf(b.val));});
+  ctx.strokeStyle="#00e5ff";ctx.lineWidth=2.5;ctx.shadowColor="#00e5ff";ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+  // fill
+  ctx.lineTo(padL+(bins.length-1)*step,padT+ih);ctx.lineTo(padL,padT+ih);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,padT,0,padT+ih);
+  grad.addColorStop(0,"rgba(0,229,255,.35)");grad.addColorStop(1,"rgba(0,229,255,0)");
+  ctx.fillStyle=grad;ctx.fill();
+  // puntos
+  bins.forEach((b,i)=>{const x=padL+i*step,y=yOf(b.val);
+    ctx.beginPath();ctx.arc(x,y,3.5,0,7);ctx.fillStyle=sevColor(b.val);ctx.fill();
+    if(b.val>=8){ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.strokeStyle="rgba(255,59,59,.5)";ctx.stroke();}
+  });
+  // labels
+  ctx.fillStyle="#5f7a8c";ctx.font="11px 'JetBrains Mono',monospace";
+  bins.forEach((b,i)=>{if(i%Math.ceil(bins.length/8)===0||i===bins.length-1)ctx.fillText(b.label,padL+i*step-14,padT+ih+16);});
+  // max value
+  const mx=Math.max(...bins.map(b=>b.val));
+  ctx.fillStyle=sevColor(mx);ctx.font="700 13px 'JetBrains Mono',monospace";
+  ctx.fillText("MAX "+mx+"/10",W-padR-70,padT+12);
+}
+
+/* ============ sonido ============ */
+let audioCtx=null,soundOn=true;
+function beep(level){
+  if(!soundOn)return;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended")audioCtx.resume();
+    const freqs=level>=9?[880,1174,1567]:level>=7?[660,880]:level>=6?[440,554]:null;
+    if(!freqs)return;
+    const t=audioCtx.currentTime;
+    freqs.forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type="sine";o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t+i*0.15);
+      g.gain.exponentialRampToValueAtTime(0.14,t+i*0.15+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+i*0.15+0.14);
+      o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.15);o.stop(t+i*0.15+0.16);});
+  }catch(e){}
+}
+let prevMax=0;
+document.addEventListener("click",()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();}catch(e){}});
+$("mute").addEventListener("click",e=>{e.stopPropagation();soundOn=!soundOn;$("mute").textContent=soundOn?"🔊":"🔇";$("mute").classList.toggle("on",!soundOn);});
 
 /* ============ scan ============ */
 async function scan(){
   $("status").innerHTML="SENSORES<br><b style='color:var(--amber)'>ESCANEANDO…</b>";
-  let events=[],srcOk=0,mode="DIRECTO";
-  // fuente primaria: feed.json curado por el watchdog (actualizado cada 30 min)
+  let events=[],srcOk=0,mode="DIRECTO",updated="";
   try{
     const r=await fetch("./feed.json?t="+Date.now(),{signal:AbortSignal.timeout(9000)});
     if(r.ok){
@@ -323,13 +491,12 @@ async function scan(){
       if(j&&Array.isArray(j.events)&&j.events.length){
         events=j.events.map(e=>({...e,cat:e.cat||"LOCAL"}));
         srcOk=(j.sources||[]).length||FEEDS.length;
-        mode="CURADOR 30-MIN";
+        mode="CURADOR 30-MIN";updated=j.updated||"";
       }
     }
   }catch(e){}
-  // fallback: escaneo directo de RSS (si feed.json no existe o esta vacio)
   if(!events.length){
-    const now=Date.now();
+    const now=Date.now()/1000;
     const results=await Promise.all(FEEDS.map(async f=>{
       try{
         const xml=await fetchText(f.u);
@@ -353,22 +520,55 @@ async function scan(){
     all.sort(sevSort);
     events=all.slice(0,60);
   }
+  // historial para grafica 7d
+  try{
+    const r=await fetch("./historial.json?t="+Date.now(),{signal:AbortSignal.timeout(8000)});
+    if(r.ok)HIST=await r.json();
+  }catch(e){}
+  ALL=events;
   events.forEach(addZoneEvent);
   refreshZonePopups();
-  render(events,srcOk);
+  updateThreat(events,srcOk);
+  renderCats(events);
+  applyFilters();
   $("srcnames").textContent=FEEDS.map(f=>f.n.toUpperCase()).join(" · ");
+  $("updated").textContent=updated?updated.replace("T"," ").slice(0,16)+" UTC":"AHORA";
   $("status").innerHTML="SENSORES<br><b>"+srcOk+"/"+FEEDS.length+" ONLINE · "+mode+"</b>";
+  // sonido + crisis
+  const top=events.length?Math.max(...events.map(e=>e.sev)):0;
+  if(top>prevMax&&top>=6)beep(top);
+  prevMax=top;
+  const crisis=events.filter(e=>e.sev>=7).length>=3||events.filter(e=>e.sev>=6).length>=5;
+  $("crisis").style.display=crisis?"flex":"none";
 }
+function updateThreat(events,srcOk){
+  const top=events.length?Math.max(...events.map(e=>e.sev)):0;
+  const score=$("tscore");score.textContent=events.length?top+"/10":"--";
+  score.style.color=sevColor(top);
+  $("tname").textContent=events.length?threatName(top):"ESCANEANDO";
+  $("tfill").style.width=(top*10)+"%";$("tfill").style.background=sevColor(top);$("tfill").style.color=sevColor(top);
+  $("tcount").textContent=events.length;
+  $("tsrc").textContent=srcOk;
+  const top5=events.slice(0,5);
+  $("ticker").innerHTML=(top5.map((e,i)=>`<span class="tk">[${e.sev}/10]</span> ${esc(e.title)}`).join(" &nbsp;◆&nbsp; ")+(top5.length?" &nbsp;◆&nbsp; ":"")+top5.map((e,i)=>`<span class="tk">[${e.sev}/10]</span> ${esc(e.title)}`).join(" &nbsp;◆&nbsp; "));
+}
+function renderCats(events){
+  const cats=["TODAS",...new Set(events.map(e=>e.cat))];
+  $("fcats").innerHTML=cats.map(c=>`<button class="fcat ${F.cat===c?"on":""}" onclick="F.cat='${c}';document.querySelectorAll('#fcats .fcat').forEach(b=>b.classList.toggle('on',b.textContent==='${c}'));applyFilters()">${c}</button>`).join("");
+}
+function sevSort(a,b){return b.sev-a.sev||(b.ts||0)-(a.ts||0);}
 
 /* ============ clock ============ */
-function tickClock(){
-  const d=new Date();
-  $("clock").textContent=d.toISOString().slice(11,19);
-}
+function tickClock(){const d=new Date();$("clock").textContent=d.toISOString().slice(11,19);}
 setInterval(tickClock,1000);tickClock();
 $("refresh").addEventListener("click",scan);
 scan();
 setInterval(scan,5*60*1000);
+
+/* ============ PWA ============ */
+if("serviceWorker" in navigator&&(location.protocol==="https:"||["localhost","127.0.0.1"].includes(location.hostname))){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 </script>
 </body>
 </html>
