@@ -52,6 +52,11 @@ button.on{border-color:var(--cyan);background:rgba(0,229,255,.12);color:#fff;box
 header{position:relative;border:1px solid var(--line);overflow:hidden;
   background:linear-gradient(180deg,rgba(4,8,14,.55),rgba(3,6,8,.92)),url(hero.jpg) center 30%/cover no-repeat;
   box-shadow:0 0 30px rgba(0,229,255,.08)}
+/* frontera y territorio */
+.side-lbl{font-size:10px;letter-spacing:2px;font-weight:800;padding:3px 9px;white-space:nowrap;background:rgba(3,8,14,.7)}
+.side-lbl.es{color:#00e5ff;border:1px solid rgba(0,229,255,.6)}
+.side-lbl.ma{color:#ffd60a;border:1px solid rgba(255,214,10,.6)}
+.border-tip{background:transparent;border:none;box-shadow:none;color:#ffd60a;font-size:9px;font-weight:700;letter-spacing:1px;text-shadow:0 0 6px #000}
 header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;
   background:linear-gradient(90deg,transparent,var(--cyan),var(--red),transparent);opacity:.8}
 .h-in{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px 20px;position:relative;z-index:2}
@@ -472,8 +477,15 @@ function clusterEvents(evs){
 
 /* ============ MAPA ============ */
 const CEUTA=[35.8894,-5.3198];
-const map=L.map("map",{zoomControl:true,attributionControl:true}).setView(CEUTA,13);
+const map=L.map("map",{zoomControl:true,attributionControl:true});
+map.fitBounds([[35.832,-5.418],[35.928,-5.278]]);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+/* frontera Espana-Marruecos: linea visible + etiquetas de territorio */
+const BORDER=[[35.9165,-5.3835],[35.9140,-5.3750],[35.9120,-5.3680],[35.9105,-5.3600],[35.9100,-5.3550],[35.9160,-5.3492],[35.9090,-5.3478],[35.9000,-5.3485],[35.8950,-5.3520],[35.8936,-5.3544],[35.8908,-5.3555]];
+L.polyline(BORDER,{color:"#ffd60a",weight:2.5,dashArray:"7 6",opacity:.95}).addTo(map)
+  .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
+L.marker([35.9080,-5.3200],{icon:L.divIcon({className:"",html:'<div class="side-lbl es">ESPAÑA · CEUTA</div>'}),interactive:false}).addTo(map);
+L.marker([35.8600,-5.4000],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma">MARRUECOS</div>'}),interactive:false}).addTo(map);
 const pinIcon=L.divIcon({className:"",html:'<div class="pin"></div>',iconSize:[18,18],iconAnchor:[9,9]});
 L.marker(CEUTA,{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopup(
   "<b style='color:var(--cyan)'>CEUTA · NODO CENTRAL</b><br>35.8894° N, 5.3198° W<br>Ciudad Autónoma de España · frontera UE-Marruecos<br>Población: ~84.000 hab · superficie: 18,5 km²");
@@ -740,20 +752,21 @@ function simTick(ts){
     if(e.type==="cross")continue;
     let color="#fff",r=3,sq=false,ship=false;
     switch(e.type){
-      case "migr":color="#ff8c00";r=3;break;
-      case "migr_ma":color="#ffd60a";r=3;break;
-      case "wave":color="#ff6d00";r=3.5;break;
-      case "police":color="#2f6bff";r=4;break;
-      case "gc":color="#00c853";r=4;break;
-      case "army":color="#8d6e63";r=3.5;sq=true;break;
-      case "customs":color="#fdd835";r=3.5;break;
-      case "police_ma":color="#ab47bc";r=4;break;
-      case "gendarmerie":color="#ec407a";r=4;break;
-      case "far":color="#5d4037";r=3.5;sq=true;break;
-      case "ship":ship=true;r=e.kind==="ferry"?5:3.5;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
+      case "migr":color="#ff8c00";r=5;break;
+      case "migr_ma":color="#ffd60a";r=5;break;
+      case "wave":color="#ff6d00";r=5;break;
+      case "police":color="#2f6bff";r=6;break;
+      case "gc":color="#00c853";r=6;break;
+      case "army":color="#8d6e63";r=5;sq=true;break;
+      case "customs":color="#fdd835";r=5;break;
+      case "police_ma":color="#ab47bc";r=6;break;
+      case "gendarmerie":color="#ec407a";r=6;break;
+      case "far":color="#5d4037";r=5;sq=true;break;
+      case "ship":ship=true;r=e.kind==="ferry"?7:5;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
       case "combat":{
         const cc=e.side?["#2f6bff","#00c853","#8d6e63"][Math.floor(Math.random()*3)]:["#ab47bc","#5d4037","#ec407a"][Math.floor(Math.random()*3)];
-        sctx.fillStyle=cc;sctx.shadowColor=cc;sctx.shadowBlur=6;sctx.fillRect(p.x-2,p.y-2,4,4);sctx.shadowBlur=0;continue;
+        sctx.fillStyle=cc;sctx.strokeStyle="rgba(0,0,0,.5)";sctx.lineWidth=1;
+        sctx.fillRect(p.x-3,p.y-3,6,6);sctx.strokeRect(p.x-3,p.y-3,6,6);continue;
       }
     }
     sctx.beginPath();
@@ -761,12 +774,13 @@ function simTick(ts){
       const n=pathPos(e.route,e.t),q2=pathPos(e.route,Math.min(1,e.t+.02));
       const a=Math.atan2(q2[1]-n[1],q2[0]-n[0]);
       sctx.save();sctx.translate(p.x,p.y);sctx.rotate(a);
-      sctx.fillStyle=color;sctx.shadowColor=color;sctx.shadowBlur=8;
-      sctx.beginPath();sctx.moveTo(r*2,0);sctx.lineTo(-r*1.5,r*.8);sctx.lineTo(-r*.8,0);sctx.lineTo(-r*1.5,-r*.8);sctx.closePath();sctx.fill();
-      sctx.restore();sctx.shadowBlur=0;continue;
+      sctx.fillStyle=color;sctx.strokeStyle="rgba(0,0,0,.5)";sctx.lineWidth=1;
+      sctx.beginPath();sctx.moveTo(r*2,0);sctx.lineTo(-r*1.5,r*.8);sctx.lineTo(-r*.8,0);sctx.lineTo(-r*1.5,-r*.8);sctx.closePath();sctx.fill();sctx.stroke();
+      sctx.restore();continue;
     }
-    if(sq){sctx.fillStyle=color;sctx.shadowColor=color;sctx.shadowBlur=6;sctx.fillRect(p.x-r,p.y-r,r*2,r*2);sctx.shadowBlur=0;}
-    else{sctx.fillStyle=color;sctx.shadowColor=color;sctx.shadowBlur=6;sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.shadowBlur=0;}
+    sctx.fillStyle=color;sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;
+    if(sq){sctx.fillRect(p.x-r,p.y-r,r*2,r*2);sctx.strokeRect(p.x-r,p.y-r,r*2,r*2);}
+    else{sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.stroke();}
   }
   /* explosiones del modo guerra encima de todo */
   if(WAR.on){
