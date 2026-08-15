@@ -424,8 +424,14 @@ function parseRSS(xml){
 const WINDOW=24*3600;
 function dedupeKey(t){return norm(t).replace(/\s*[-|\u2014\u2013]\s*(el faro de ceuta|ceuta actualidad|ceuta tv|rtvce|europa press|google news|efe)\s*$/,"");}
 const STOP=new Set(["de","la","el","en","y","a","los","las","un","una","unos","unas","que","con","por","para","del","al","su","sus","se","lo","como","mas","tras","ante","este","esta","estos","estas","contra","entre","desde","hasta","sobre","segun","tambien","ser","sin","otro","otra","hay","muy","ya","casi","asi","pese","nuevo","nueva","nuevos","nuevas","cerca","decenas","cientos","miles","varios","varias","frente","hacia","medio","medios","hora","horas","dia","dias"]);
+function cleanSrc(t){
+  // quita sufijos de fuente (" - El Mundo", " - EFE - Agencia de noticias", " - ondacero.es")
+  let s=t;
+  for(let i=0;i<2;i++)s=s.replace(/\s*[–—-]\s*[A-Za-zÁÉÍÓÚÑáéíóúñ0-9][A-Za-zÁÉÍÓÚÑáéíóúñ0-9\.\'’& ]{1,44}$/,"");
+  return s;
+}
 function tBigrams(t){
-  const w=norm(t).split(/\s+/).filter(x=>x.length>3&&!STOP.has(x));
+  const w=norm(cleanSrc(t)).split(/\s+/).filter(x=>x.length>3&&!STOP.has(x));
   const s=new Set();for(let i=0;i<w.length-1;i++)s.add(w[i]+" "+w[i+1]);
   return s;
 }
@@ -434,7 +440,7 @@ function clusterEvents(evs){
   const clusters=[];
   for(const e of evs){
     const tk=tBigrams(e.title);
-    let best=null,bestD=0.42;
+    let best=null,bestD=0.30;
     for(const c of clusters){const d=dice(tk,c.tokens);if(d>bestD){best=c;bestD=d;}}
     if(best){best.events.push(e);best.tokens=tk;}
     else clusters.push({events:[e],tokens:tk});
@@ -784,7 +790,7 @@ function drawFeed(){
       <div class="alt">${c.alt.map(a=>`<span style="color:${sevColor(a.sev)}">[${a.sev}/10]</span> ${esc(a.src)} — <a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title.slice(0,90))}…</a>`).join("<br>")}</div>`:"";
     return `<div class="card" style="border-left-color:${col};color:${col}">
       <div class="row1"><span class="sev" style="color:${col}">${c.sev}/10</span><span class="cat">${c.cat}</span><span class="cat">${c.src}</span>${medias}</div>
-      ${img}<div class="t">${esc(c.title)}</div>
+      ${img}<div class="t">${esc(cleanSrc(c.title))}</div>
       <div class="mini"><span class="bar"><i style="width:${c.sev*10}%"></i></span></div>
       <div class="meta"><span>${sevLabel(c.sev)}</span><span class="when">${timeAgo(c.ts)}</span><a href="${esc(c.link)}" target="_blank" rel="noopener">⧉ FUENTE</a></div>
       ${altHtml}
