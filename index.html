@@ -117,6 +117,9 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #simlegend .row{display:flex;align-items:center;gap:6px}
 #simlegend .sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 #simtoggle{position:absolute;top:44px;left:10px;z-index:510}
+#flowbtn{position:absolute;top:44px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
+#flowbtn:hover,#flowbtn.on{background:rgba(255,214,10,.25);box-shadow:0 0 12px rgba(255,214,10,.4)}
+#flowbadge{position:absolute;top:80px;left:10px;z-index:520;background:rgba(40,20,0,.92);border:1px solid var(--amber);color:#ffd60a;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:1.5px;animation:warflash 1s infinite}
 
 /* GRID PRINCIPAL */
 .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:12px}
@@ -266,8 +269,10 @@ body.war #logo{border-color:#ff3333;box-shadow:0 0 22px rgba(255,0,0,.85);animat
   <div id="simtip"></div>
   <div class="radar-badge">◉ RADAR ACTIVO</div>
   <button id="simtoggle">⏸ SIM ON</button>
+  <button id="flowbtn" title="Reproducir flujo de entrada masiva">▶ FLUJO</button>
   <button id="legendbtn" title="Mostrar/ocultar leyenda">Σ LEYENDA</button>
   <button id="layersbtn" title="Capas del mapa">⚙ CAPAS</button>
+  <div id="flowbadge" style="display:none">⏳ ENTRADA MASIVA · <b id="flowcnt">0</b> entradas</div>
   <div id="layerspanel"></div>
   <div id="simlegend">
     <b>LEYENDA</b>
@@ -743,6 +748,24 @@ function simTick(ts){
     }
     if(WAR.t-WAR.lastWave>1500){SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(10,20)));}
   }
+  /* FLUJO DE ENTRADA: rafagas por Tarajal y Biutz con contador */
+  if(FLUJO.on){
+    const fnow=Date.now();
+    if(fnow-FLUJO.last>1500&&FLUJO.count<400){
+      FLUJO.last=fnow;
+      const n1=Math.floor(rnd(18,32));
+      for(let i=0;i<n1;i++)spawnWave(TARAJAL,pick(FLOW_DESTS),1);
+      const n2=Math.floor(rnd(6,14));
+      for(let i=0;i<n2;i++)spawnWave(BIUTZ,pick(FLOW_DESTS),1);
+      FLUJO.count+=n1+n2;
+      $("flowcnt").textContent=FLUJO.count;
+    }
+    if(FLUJO.count>=400||fnow-FLUJO.start>30000){
+      FLUJO.on=false;
+      $("flowbtn").textContent="▶ FLUJO";$("flowbtn").classList.remove("on");
+      $("flowbadge").style.display="none";
+    }
+  }
   // dibujar cruces primero (fondo)
   for(const[e,p]of draw)if(e.type==="cross"){
     sctx.strokeStyle="rgba(255,255,255,.85)";sctx.lineWidth=2;sctx.shadowColor="#fff";sctx.shadowBlur=6;
@@ -780,7 +803,15 @@ function simTick(ts){
     }
     sctx.fillStyle=color;sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;
     if(sq){sctx.fillRect(p.x-r,p.y-r,r*2,r*2);sctx.strokeRect(p.x-r,p.y-r,r*2,r*2);}
-    else{sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.stroke();}
+    else{
+      if(e.type==="wave"){ /* estela direccional para ver el flujo de entrada */
+        const prev=ll(lerp(e.home,e.dest,Math.max(0,e.t-.05)));
+        sctx.strokeStyle="rgba(255,109,0,.4)";sctx.lineWidth=3;
+        sctx.beginPath();sctx.moveTo(prev.x,prev.y);sctx.lineTo(p.x,p.y);sctx.stroke();
+        sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;
+      }
+      sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.stroke();
+    }
   }
   /* explosiones del modo guerra encima de todo */
   if(WAR.on){
@@ -833,6 +864,20 @@ $("layersbtn").addEventListener("click",function(){
 });
 /* ============ EASTER EGG: MODO GUERRA ============ */
 let WAR={on:false,expl:[],lastExpl:0,lastSpawn:0};
+/* ============ FLUJO DE ENTRADA MASIVA (boton PLAY) ============ */
+const FLOW_DESTS=[[35.8894,-5.3198],[35.8926,-5.3368],[35.8900,-5.3300],[35.9167,-5.3833],[35.8890,-5.3000],[35.8840,-5.3180],[35.8970,-5.3210],[35.8870,-5.2900]];
+let FLUJO={on:false,count:0,last:0,start:0};
+$("flowbtn").addEventListener("click",function(){
+  if(!FLUJO.on){
+    FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
+    if(!SIM.on){SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.add("on");}
+    this.textContent="⏸ FLUJO";this.classList.add("on");
+    $("flowbadge").style.display="block";$("flowcnt").textContent="0";
+  }else{
+    FLUJO.on=false;this.textContent="▶ FLUJO";this.classList.remove("on");
+    $("flowbadge").style.display="none";
+  }
+});
 function toggleWar(){
   WAR.on=!WAR.on;
   document.body.classList.toggle("war",WAR.on);
