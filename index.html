@@ -430,18 +430,27 @@ function cleanSrc(t){
   for(let i=0;i<2;i++)s=s.replace(/\s*[–—-]\s*[A-Za-zÁÉÍÓÚÑáéíóúñ0-9][A-Za-zÁÉÍÓÚÑáéíóúñ0-9\.\'’& ]{1,44}$/,"");
   return s;
 }
-function tBigrams(t){
+function tTokens(t){
+  // raices de 5 letras (tolera parafraseo) + bigramas exactos + numeros clave
   const w=norm(cleanSrc(t)).split(/\s+/).filter(x=>x.length>3&&!STOP.has(x));
-  const s=new Set();for(let i=0;i<w.length-1;i++)s.add(w[i]+" "+w[i+1]);
-  return s;
+  const un=new Set(),bi=new Set();
+  for(let i=0;i<w.length;i++){
+    un.add(w[i].slice(0,5));
+    if(i<w.length-1)bi.add(w[i]+" "+w[i+1]);
+  }
+  return {un,bi,n:new Set((t.match(/\d{2,4}/g)||[]))};
 }
 function dice(a,b){if(!a.size||!b.size)return 0;let i=0;for(const x of a)if(b.has(x))i++;return 2*i/(a.size+b.size);}
 function clusterEvents(evs){
   const clusters=[];
   for(const e of evs){
-    const tk=tBigrams(e.title);
-    let best=null,bestD=0.30;
-    for(const c of clusters){const d=dice(tk,c.tokens);if(d>bestD){best=c;bestD=d;}}
+    const tk=tTokens(e.title);
+    let best=null,bestD=0.22;
+    for(const c of clusters){
+      let d=0.65*dice(tk.un,c.tokens.un)+0.35*dice(tk.bi,c.tokens.bi);
+      for(const x of tk.n)if(c.tokens.n.has(x)){d+=0.15;break;}
+      if(d>bestD){best=c;bestD=d;}
+    }
     if(best){best.events.push(e);best.tokens=tk;}
     else clusters.push({events:[e],tokens:tk});
   }
