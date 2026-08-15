@@ -266,7 +266,8 @@ L.marker([35.8894,-5.3198],{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopu
 L.circle([35.8894,-5.3198],{radius:2600,color:"#00e5ff",weight:1,fillColor:"#00e5ff",fillOpacity:.04}).addTo(map);
 const zoneMarkers={};
 function addZoneEvent(ev){
-  const z=zoneOf(ev.title+" "+ev.desc);if(!z)return;
+  const z=(ev.zone&&ev.zone.length===2)?ev.zone:zoneOf(ev.title+" "+(ev.desc||""));
+  if(!z)return;
   if(!zoneMarkers[z[0]+","+z[1]]){
     const m=L.marker(z,{icon:pinIcon}).addTo(map);
     zoneMarkers[z[0]+","+z[1]]={m,items:[]};
@@ -313,35 +314,50 @@ function sevSort(a,b){return b.sev-a.sev||(b.ts||0)-(a.ts||0);}
 /* ============ scan ============ */
 async function scan(){
   $("status").innerHTML="SENSORES<br><b style='color:var(--amber)'>ESCANEANDO…</b>";
-  const now=Date.now();
-  const results=await Promise.all(FEEDS.map(async f=>{
-    try{
-      const xml=await fetchText(f.u);
-      if(!xml)return {f,ok:false,events:[]};
-      const items=parseRSS(xml);
-      const events=[];
-      for(const it of items){
-        if(it.ts&&now-it.ts>WINDOW)continue;
-        events.push({...it,src:f.n,sev:classify(it.title,it.desc),cat:category(it.title,it.desc)});
+  let events=[],srcOk=0,mode="DIRECTO";
+  // fuente primaria: feed.json curado por el watchdog (actualizado cada 30 min)
+  try{
+    const r=await fetch("./feed.json?t="+Date.now(),{signal:AbortSignal.timeout(9000)});
+    if(r.ok){
+      const j=await r.json();
+      if(j&&Array.isArray(j.events)&&j.events.length){
+        events=j.events.map(e=>({...e,cat:e.cat||"LOCAL"}));
+        srcOk=(j.sources||[]).length||FEEDS.length;
+        mode="CURADOR 30-MIN";
       }
-      return {f,ok:true,events};
-    }catch(e){return {f,ok:false,events:[]};}
-  }));
-  const srcOk=results.filter(r=>r.ok).length;
-  // dedupe entre feeds: misma noticia en varios medios se muestra una sola vez
-  const seenKeys=new Set();const all=[];
-  for(const r of results){for(const e of r.events){
-    const k=dedupeKey(e.title);
-    if(seenKeys.has(k))continue;
-    seenKeys.add(k);all.push(e);
-  }}
-  all.sort(sevSort);
-  const events=all.slice(0,60);
+    }
+  }catch(e){}
+  // fallback: escaneo directo de RSS (si feed.json no existe o esta vacio)
+  if(!events.length){
+    const now=Date.now();
+    const results=await Promise.all(FEEDS.map(async f=>{
+      try{
+        const xml=await fetchText(f.u);
+        if(!xml)return {f,ok:false,events:[]};
+        const items=parseRSS(xml);
+        const evs=[];
+        for(const it of items){
+          if(it.ts&&now-it.ts>WINDOW)continue;
+          evs.push({...it,src:f.n,sev:classify(it.title,it.desc),cat:category(it.title,it.desc)});
+        }
+        return {f,ok:true,events:evs};
+      }catch(e){return {f,ok:false,events:[]};}
+    }));
+    srcOk=results.filter(r=>r.ok).length;
+    const seenKeys=new Set();const all=[];
+    for(const r of results){for(const e of r.events){
+      const k=dedupeKey(e.title);
+      if(seenKeys.has(k))continue;
+      seenKeys.add(k);all.push(e);
+    }}
+    all.sort(sevSort);
+    events=all.slice(0,60);
+  }
   events.forEach(addZoneEvent);
   refreshZonePopups();
   render(events,srcOk);
   $("srcnames").textContent=FEEDS.map(f=>f.n.toUpperCase()).join(" · ");
-  $("status").innerHTML="SENSORES<br><b>"+srcOk+"/"+FEEDS.length+" ONLINE</b>";
+  $("status").innerHTML="SENSORES<br><b>"+srcOk+"/"+FEEDS.length+" ONLINE · "+mode+"</b>";
 }
 
 /* ============ clock ============ */
