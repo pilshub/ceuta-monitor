@@ -883,6 +883,14 @@ $("flowbtn").addEventListener("click",function(){
     $("flowbadge").style.display="none";
   }
 });
+/* modos por URL para demo/verificacion: ?flujo=1 ?guerra=1 */
+if(location.search.includes("flujo")){
+  FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
+  SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.add("on");
+  $("flowbtn").textContent="⏸ FLUJO";$("flowbtn").classList.add("on");
+  $("flowbadge").style.display="block";$("flowcnt").textContent="0";
+}
+if(location.search.includes("guerra"))toggleWar();
 function toggleWar(){
   WAR.on=!WAR.on;
   document.body.classList.toggle("war",WAR.on);
