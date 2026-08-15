@@ -498,9 +498,9 @@ const BORDER=[[35.9165,-5.3835],[35.9140,-5.3750],[35.9120,-5.3680],[35.9105,-5.
 L.polyline(BORDER,{color:"#ffd60a",weight:14,opacity:.16,lineCap:"round",lineJoin:"round"}).addTo(map);
 L.polyline(BORDER,{color:"#ffd60a",weight:4,dashArray:"10 8",opacity:.95,lineCap:"round",lineJoin:"round"}).addTo(map)
   .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
-L.marker([35.9080,-5.3200],{icon:L.divIcon({className:"",html:'<div class="side-lbl es">ESPAÑA · CEUTA</div>'}),interactive:false}).addTo(map);
-L.marker([35.8600,-5.4000],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma">MARRUECOS</div>'}),interactive:false}).addTo(map);
-L.marker([35.8384,-5.3880],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma" style="font-size:9px;padding:2px 7px">FNIDEQ</div>'}),interactive:false}).addTo(map);
+L.marker([35.9080,-5.3300],{icon:L.divIcon({className:"",html:'<div class="side-lbl es">ESPAÑA · CEUTA</div>'}),interactive:false}).addTo(map);
+L.marker([35.8520,-5.3700],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma">MARRUECOS</div>'}),interactive:false}).addTo(map);
+L.marker([35.8370,-5.3760],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma" style="font-size:9px;padding:2px 7px">FNIDEQ</div>'}),interactive:false}).addTo(map);
 const pinIcon=L.divIcon({className:"",html:'<div class="pin"></div>',iconSize:[18,18],iconAnchor:[9,9]});
 L.marker(CEUTA,{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopup(
   "<b style='color:var(--cyan)'>CEUTA · NODO CENTRAL</b><br>35.8894° N, 5.3198° W<br>Ciudad Autónoma de España · frontera UE-Marruecos<br>Población: ~84.000 hab · superficie: 18,5 km²");
