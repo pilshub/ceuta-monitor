@@ -36,12 +36,12 @@ self.addEventListener("fetch", e => {
     );
     return;
   }
-  // shell: cache-first
+  // shell: network-first (siempre version fresca) con fallback a cache (offline)
   e.respondWith(
-    caches.match(e.request).then(m => m || fetch(e.request).then(r => {
+    fetch(e.request).then(r => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
       return r;
-    }))
+    }).catch(() => caches.match(e.request).then(m => m || caches.match("./index.html")))
   );
 });
