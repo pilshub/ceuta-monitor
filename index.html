@@ -116,10 +116,10 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #simlegend b{color:#b8d4e8;font-size:9px}
 #simlegend .row{display:flex;align-items:center;gap:6px}
 #simlegend .sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-#simtoggle{position:absolute;top:44px;left:10px;z-index:510}
-#flowbtn{position:absolute;top:44px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
+#simtoggle{position:absolute;top:8px;left:10px;z-index:510;padding:4px 9px;font-size:9px}
+#flowbtn{position:absolute;top:8px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:4px 9px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 #flowbtn:hover,#flowbtn.on{background:rgba(255,214,10,.25);box-shadow:0 0 12px rgba(255,214,10,.4)}
-#flowbadge{position:absolute;top:78px;left:10px;z-index:520;background:rgba(40,20,0,.95);border:1px solid var(--amber);color:#ffd60a;padding:8px 14px;font-size:13px;font-weight:800;letter-spacing:1.5px;animation:warflash 1s infinite;box-shadow:0 0 18px rgba(255,214,10,.35)}
+#flowbadge{position:absolute;top:44px;left:10px;z-index:520;background:rgba(40,20,0,.95);border:1px solid var(--amber);color:#ffd60a;padding:8px 14px;font-size:13px;font-weight:800;letter-spacing:1.5px;animation:warflash 1s infinite;box-shadow:0 0 18px rgba(255,214,10,.35)}
 
 /* GRID PRINCIPAL */
 .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:12px}
@@ -233,7 +233,7 @@ body.war #logo{border-color:#ff3333;box-shadow:0 0 22px rgba(255,0,0,.85);animat
   #simtoggle,#flowbtn{height:38px;font-size:10px;padding:6px 12px}
   #legendbtn,#layersbtn{height:36px;font-size:10px;padding:7px 12px}
   .leaflet-control-zoom a{width:38px;height:38px;line-height:38px;font-size:18px}
-  #flowbadge{font-size:12px;padding:7px 12px;top:90px}
+  #flowbadge{font-size:12px;padding:7px 12px;top:50px}
 }
 </style>
 </head>
@@ -681,18 +681,18 @@ function seedSim(){
   const zones={};
   ALL.forEach(e=>{const z=(e.zone&&e.zone.length===2)?e.zone:zoneOf(e.title+" "+(e.desc||""));if(z){const k=z[0]+","+z[1];zones[k]=zones[k]||{c:z,n:0};zones[k].n++;}});
   const placed=new Set();
-  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(220,14+z.n*22);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
+  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(300,20+z.n*30);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
   // poblacion base si hay crisis de frontera
   if(frontiera||Object.keys(zones).length<3){
-    const baseZones=[[[35.8926,-5.3368],170],[[35.8900,-5.3300],100],[[35.9167,-5.3833],140],[[35.8894,-5.3198],110],[[35.8840,-5.3180],85]];
+    const baseZones=[[[35.8926,-5.3368],220],[[35.8900,-5.3300],140],[[35.9167,-5.3833],180],[[35.8894,-5.3198],150],[[35.8840,-5.3180],110]];
     baseZones.forEach(([c,n])=>{if(!placed.has(c[0].toFixed(4)))spawnStatic("migr",c,n,16);});
   }
   // lado marroqui
-  const maN=frontiera?380:180;
+  const maN=frontiera?500:220;
   spawnStatic("migr_ma",[35.8384,-5.3863],maN,30);
-  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?130:50,24);
-  spawnStatic("migr_ma",[35.8890,-5.3600],frontiera?95:32,18);
-  spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?110:36,26);
+  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?160:60,24);
+  spawnStatic("migr_ma",[35.8890,-5.3600],frontiera?120:40,18);
+  spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?140:45,26);
   // fuerzas espanolas: decenas patrullando
   spawnStatic("police",[35.8893,-5.3105],24,30);spawnStatic("police",[35.8920,-5.3370],16,26);spawnStatic("police",[35.8936,-5.3544],10,18);spawnStatic("police",[35.8970,-5.3210],8,20);
   spawnStatic("gc",[35.8875,-5.3090],18,30);spawnStatic("gc",[35.9165,-5.3830],12,22);spawnStatic("gc",[35.8936,-5.3544],10,18);spawnStatic("gc",[35.8970,-5.3210],8,20);
