@@ -500,6 +500,7 @@ L.polyline(BORDER,{color:"#ffd60a",weight:4,dashArray:"10 8",opacity:.95,lineCap
   .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
 L.marker([35.9080,-5.3200],{icon:L.divIcon({className:"",html:'<div class="side-lbl es">ESPAÑA · CEUTA</div>'}),interactive:false}).addTo(map);
 L.marker([35.8600,-5.4000],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma">MARRUECOS</div>'}),interactive:false}).addTo(map);
+L.marker([35.8384,-5.3880],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma" style="font-size:9px;padding:2px 7px">FNIDEQ</div>'}),interactive:false}).addTo(map);
 const pinIcon=L.divIcon({className:"",html:'<div class="pin"></div>',iconSize:[18,18],iconAnchor:[9,9]});
 L.marker(CEUTA,{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopup(
   "<b style='color:var(--cyan)'>CEUTA · NODO CENTRAL</b><br>35.8894° N, 5.3198° W<br>Ciudad Autónoma de España · frontera UE-Marruecos<br>Población: ~84.000 hab · superficie: 18,5 km²");
@@ -674,6 +675,25 @@ mapEl.addEventListener("mousemove",e=>{
   else tip.style.display="none";
 });
 mapEl.addEventListener("mouseleave",()=>{$("simtip").style.display="none";});
+/* tooltip tactil para movil: toca un punto y muestra su info */
+mapEl.addEventListener("touchstart",e=>{
+  const t=e.touches[0];if(!t)return;
+  const r=mapEl.getBoundingClientRect();
+  const mx=t.clientX-r.left,my=t.clientY-r.top;
+  let best=null,bd=16;
+  for(const ent of SIM.ents){
+    if(ent._dead)continue;
+    const p=entPos(ent,false);
+    if(!p)continue;
+    const d=Math.hypot(p.x-mx,p.y-my);
+    if(d<bd){bd=d;best=ent;}
+  }
+  const tip=$("simtip");
+  if(best){tip.textContent=simLabel(best);tip.style.display="block";
+    tip.style.left=Math.min(r.width-230,mx+12)+"px";tip.style.top=(my+14)+"px";
+    clearTimeout(tip._t);tip._t=setTimeout(()=>tip.style.display="none",3000);}
+  else tip.style.display="none";
+});
 const FERRY=[[35.8940,-5.3110],[35.9200,-5.3300],[35.9450,-5.3600],[35.9700,-5.3850],[36.0000,-5.4050],[36.0400,-5.4250],[36.0800,-5.4380],[36.1270,-5.4430]];
 const STR_W=[[35.9200,-5.6000],[35.9300,-5.5000],[35.9400,-5.4000],[35.9500,-5.3000],[35.9550,-5.2000]];
 const STR_E=STR_W.slice().reverse();
@@ -819,7 +839,7 @@ function simTick(ts){
     else{
       if(e.type==="wave"){ /* estela direccional larga para ver el flujo de entrada */
         const prev=ll(lerp(e.home,e.dest,Math.max(0,e.t-.12)));
-        sctx.strokeStyle="rgba(255,109,0,.6)";sctx.lineWidth=5; sctx.lineCap="round";
+        sctx.strokeStyle="rgba(255,122,0,.75)";sctx.lineWidth=5; sctx.lineCap="round";
         sctx.beginPath();sctx.moveTo(prev.x,prev.y);sctx.lineTo(p.x,p.y);sctx.stroke();
         sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;sctx.lineCap="butt";
       }
