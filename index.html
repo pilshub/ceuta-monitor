@@ -184,7 +184,7 @@ a{color:var(--cyan)}
 const $=id=>document.getElementById(id);
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-function timeAgo(ts){if(!ts)return "—";const d=(Date.now()-ts)/1000;
+function timeAgo(ts){if(!ts)return "—"; if(ts<1e12)ts*=1000; const d=(Date.now()-ts)/1000;
   if(d<60)return "<1 min";if(d<3600)return Math.floor(d/60)+" min";if(d<86400)return Math.floor(d/3600)+" h";
   const x=new Date(ts);return x.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+x.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});}
 
