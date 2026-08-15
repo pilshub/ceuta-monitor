@@ -795,7 +795,7 @@ function drawFeed(){
     const col=sevColor(c.sev);
     const medias=c.media.length>1?`<span class="cat" style="color:var(--cyan);border-color:rgba(0,229,255,.4)">${c.media.length} MEDIOS</span>`:"";
     const img=c.img?`<img class="thumb" src="${esc(c.img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:"";
-    const altHtml=c.alt.length?`<div class="alt-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">▸ ${c.alt.length} versión${c.alt.length>1?"es":""} de esta historia</div>
+    const altHtml=c.alt.length?`<div class="alt-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">▸ ${c.alt.length} ${c.alt.length>1?"versiones":"versión"} de esta historia</div>
       <div class="alt">${c.alt.map(a=>`<span style="color:${sevColor(a.sev)}">[${a.sev}/10]</span> ${esc(a.src)} — <a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title.slice(0,90))}…</a>`).join("<br>")}</div>`:"";
     return `<div class="card" style="border-left-color:${col};color:${col}">
       <div class="row1"><span class="sev" style="color:${col}">${c.sev}/10</span><span class="cat">${c.cat}</span><span class="cat">${c.src}</span>${medias}</div>
