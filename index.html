@@ -55,6 +55,8 @@ header{position:relative;border:1px solid var(--line);overflow:hidden;
 header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;
   background:linear-gradient(90deg,transparent,var(--cyan),var(--red),transparent);opacity:.8}
 .h-in{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px 20px;position:relative;z-index:2}
+.h-left{display:flex;align-items:center;gap:14px;min-width:0}
+#logo{width:46px;height:46px;border-radius:50%;border:1px solid var(--cyan);flex-shrink:0;object-fit:cover;box-shadow:0 0 16px rgba(0,229,255,.45),0 0 4px rgba(0,229,255,.8);background:#030608}
 .h-title{font-size:22px;font-weight:800;letter-spacing:4px;color:#fff;text-shadow:0 0 18px rgba(0,229,255,.7),0 0 40px rgba(0,229,255,.3)}
 .h-title .gl{color:var(--cyan)}
 .h-sub{font-size:9px;color:var(--dim);letter-spacing:4px;text-transform:uppercase;margin-top:3px}
@@ -201,9 +203,12 @@ footer a{color:var(--cyan)}
 
 <header>
   <div class="h-in">
-    <div>
-      <div class="h-title">◤ CEUTA <span class="gl">//</span> SITUATION MONITOR ◢</div>
-      <div class="h-sub">Vigilancia táctica en tiempo real · 35.8894° N, 5.3198° W</div>
+    <div class="h-left">
+      <img id="logo" src="logo.png" alt="CEUTA MONITOR">
+      <div>
+        <div class="h-title">◤ CEUTA <span class="gl">//</span> SITUATION MONITOR ◢</div>
+        <div class="h-sub">Vigilancia táctica en tiempo real · 35.8894° N, 5.3198° W</div>
+      </div>
     </div>
     <div class="h-right">
       <div class="clock"><small>UTC · SYNC</small><span id="clock">--:--:--</span></div>
