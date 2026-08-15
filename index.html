@@ -95,7 +95,8 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 .leaflet-popup-content{margin:10px 12px;font-size:11px;line-height:1.6}
 
 /* SIM */
-#simcanvas{position:absolute;inset:0;z-index:400;pointer-events:none}
+#simcanvas{position:absolute;inset:0;z-index:380;pointer-events:none}
+#simtip{position:absolute;z-index:650;background:rgba(3,8,14,.94);border:1px solid var(--cyan);padding:4px 9px;font-size:9px;letter-spacing:.5px;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 0 12px rgba(0,229,255,.2)}
 #simlegend{position:absolute;left:10px;bottom:10px;z-index:510;background:rgba(3,8,14,.88);border:1px solid var(--line);padding:8px 10px;font-size:9px;line-height:1.9;letter-spacing:.5px;pointer-events:none;max-width:230px}
 #simlegend b{color:#b8d4e8;font-size:9px}
 #simlegend .row{display:flex;align-items:center;gap:6px}
@@ -217,9 +218,11 @@ footer a{color:var(--cyan)}
 
 <div class="mapwrap">
   <div class="p-head"><span class="tag">TÁCTICO</span><h2>Mapa de situación · Ceuta y Fnideq</h2><span class="sp"></span><span style="font-size:9px;color:var(--dim);letter-spacing:1px">SIMULACIÓN DE TERRENO</span></div>
-  <div id="map"></div>
-  <canvas id="simcanvas"></canvas>
-  <div class="radar-sweep"></div>
+  <div id="map">
+    <canvas id="simcanvas"></canvas>
+    <div class="radar-sweep"></div>
+  </div>
+  <div id="simtip"></div>
   <div class="radar-badge">◉ RADAR ACTIVO</div>
   <button id="simtoggle">⏸ SIM ON</button>
   <div id="simlegend">
@@ -415,37 +418,41 @@ const CEUTA=[35.8894,-5.3198];
 const map=L.map("map",{zoomControl:true,attributionControl:true}).setView(CEUTA,13);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
 const pinIcon=L.divIcon({className:"",html:'<div class="pin"></div>',iconSize:[18,18],iconAnchor:[9,9]});
-L.marker(CEUTA,{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopup("<b style='color:var(--cyan)'>CEUTA · NODO CENTRAL</b><br>35.8894° N, 5.3198° W");
-L.circle(CEUTA,{radius:2600,color:"#00e5ff",weight:1,fillColor:"#00e5ff",fillOpacity:.04}).addTo(map);
+L.marker(CEUTA,{icon:pinIcon,zIndexOffset:1000}).addTo(map).bindPopup(
+  "<b style='color:var(--cyan)'>CEUTA · NODO CENTRAL</b><br>35.8894° N, 5.3198° W<br>Ciudad Autónoma de España · frontera UE-Marruecos<br>Población: ~84.000 hab · superficie: 18,5 km²");
+L.circle(CEUTA,{radius:2600,color:"#00e5ff",weight:1,fillColor:"#00e5ff",fillOpacity:.04}).addTo(map)
+  .bindTooltip("Radio de vigilancia · 2,6 km",{direction:"top",opacity:.85});
 
 /* infraestructura fija */
 const INFRA=[
-  {n:"Comisaría Policía Nacional",c:[35.8893,-5.3105],i:"👮",ma:false},
-  {n:"Comisaría El Príncipe",c:[35.8920,-5.3370],i:"👮",ma:false},
-  {n:"Comandancia Guardia Civil",c:[35.8875,-5.3090],i:"🛡️",ma:false},
-  {n:"Puesto GC Benzú",c:[35.9165,-5.3830],i:"🛡️",ma:false},
-  {n:"Comandancia General (Ejército)",c:[35.8883,-5.3053],i:"★",ma:false},
-  {n:"Acuartelamiento García Aldave",c:[35.8780,-5.3300],i:"★",ma:false},
-  {n:"Tercio Duque de Alba (Legión)",c:[35.8720,-5.3320],i:"★",ma:false},
-  {n:"Base Naval / Estación Naval",c:[35.8940,-5.3140],i:"⚓",ma:false},
-  {n:"Helipuerto",c:[35.8925,-5.3060],i:"🚁",ma:false},
-  {n:"Hospital Universitario",c:[35.8875,-5.3210],i:"🏥",ma:false},
-  {n:"CETI",c:[35.8970,-5.3210],i:"🏠",ma:false},
-  {n:"Frontera del Tarajal",c:[35.8936,-5.3544],i:"⛨",ma:false},
-  {n:"Frontera del Biutz",c:[35.9160,-5.3490],i:"⛨",ma:false},
-  {n:"Puerto Comercial",c:[35.8940,-5.3110],i:"🚢",ma:false},
-  {n:"Puerto Deportivo",c:[35.8920,-5.3040],i:"⛵",ma:false},
-  {n:"Faro Punta Almina",c:[35.8997,-5.2840],i:"🗼",ma:false},
-  {n:"Monte Hacho (149 m)",c:[35.8970,-5.2890],i:"⛰️",ma:false},
-  {n:"Monte Anyera (349 m)",c:[35.8750,-5.4080],i:"⛰️",ma:true},
-  {n:"Fnideq / Castillejos",c:[35.8384,-5.3863],i:"🏘️",ma:true},
-  {n:"Cuartel Gendarmería Fnideq",c:[35.8370,-5.3880],i:"🛡️",ma:true},
-  {n:"Comisaría DGSN Fnideq",c:[35.8395,-5.3845],i:"👮",ma:true},
-  {n:"Puesto fronterizo marroquí",c:[35.8910,-5.3550],i:"⛨",ma:true}
+  {n:"Comisaría Policía Nacional",c:[35.8893,-5.3105],i:"👮",ma:false,d:"Policía Nacional · comisaría principal de Ceuta (Av. San Francisco Javier). ~750 agentes en la ciudad."},
+  {n:"Comisaría El Príncipe",c:[35.8920,-5.3370],i:"👮",ma:false,d:"Policía Nacional · comisaría de distrito del barrio El Príncipe, zona de alta actividad policial."},
+  {n:"Comandancia Guardia Civil",c:[35.8875,-5.3090],i:"🛡️",ma:false,d:"Guardia Civil · comandancia de Ceuta (Av. África). ~550 efectivos, incluye GEAS (buceadores) y Tráfico."},
+  {n:"Puesto GC Benzú",c:[35.9165,-5.3830],i:"🛡️",ma:false,d:"Guardia Civil · puesto fronterizo de Benzú, junto a la frontera del Biutz y la costa oeste."},
+  {n:"Comandancia General (Ejército)",c:[35.8883,-5.3053],i:"★",ma:false,d:"Ejército de Tierra · sede de la Comandancia General de Ceuta (Edificio del Revellín). ~3.200 efectivos."},
+  {n:"Acuartelamiento García Aldave",c:[35.8780,-5.3300],i:"★",ma:false,d:"Ejército · acuartelamiento García Aldave (Campo Exterior), incluye el Centro de Instrucción de Reclutas (CIR)."},
+  {n:"Tercio Duque de Alba (Legión)",c:[35.8720,-5.3320],i:"★",ma:false,d:"Ejército · Tercio 'Duque de Alba' 2º de La Legión. ~1.500 efectivos, unidad de élite acuartelada en Ceuta."},
+  {n:"Base Naval / Estación Naval",c:[35.8940,-5.3140],i:"⚓",ma:false,d:"Armada · Estación Naval de Ceuta + Unidad de Buceo. ~150 efectivos, patrulleras y embarcaciones menores."},
+  {n:"Helipuerto",c:[35.8925,-5.3060],i:"🚁",ma:false,d:"Helipuerto de Ceuta · conexión aérea con la Península (Algeciras/Málaga)."},
+  {n:"Hospital Universitario",c:[35.8875,-5.3210],i:"🏥",ma:false,d:"Hospital Universitario de Ceuta (Av. Otero) · referencia sanitaria de la ciudad y de emergencias en frontera."},
+  {n:"CETI",c:[35.8970,-5.3210],i:"🏠",ma:false,d:"Centro de Estancia Temporal de Inmigrantes (CETI) · capacidad ~600 plazas, junto al puerto."},
+  {n:"Frontera del Tarajal",c:[35.8936,-5.3544],i:"⛨",ma:false,d:"Paso fronterizo peatonal del Tarajal · principal punto de entrada. 17-05-2021: entrada masiva de ~10.000 personas."},
+  {n:"Frontera del Biutz",c:[35.9160,-5.3490],i:"⛨",ma:false,d:"Frontera del Biutz · paso de vehículos y mercancías con Marruecos."},
+  {n:"Puerto Comercial",c:[35.8940,-5.3110],i:"🚢",ma:false,d:"Puerto de Ceuta · tráfico de mercancías y ferries con Algeciras (~60 min)."},
+  {n:"Puerto Deportivo",c:[35.8920,-5.3040],i:"⛵",ma:false,d:"Marina deportiva de Ceuta."},
+  {n:"Faro Punta Almina",c:[35.8997,-5.2840],i:"🗼",ma:false,d:"Faro de Punta Almina · extremo NE de la península, entrada al Mediterráneo desde el Estrecho."},
+  {n:"Monte Hacho (149 m)",c:[35.8970,-5.2890],i:"⛰️",ma:false,d:"Monte Hacho (149 m) · mirador y fortaleza militar histórica que domina el Estrecho."},
+  {n:"Monte Anyera (349 m)",c:[35.8750,-5.4080],i:"⛰️",ma:true,d:"Monte Anyera (349 m) · lado marroquí. Posición dominante sobre la frontera, usada por las FAR en los despliegues."},
+  {n:"Fnideq / Castillejos",c:[35.8384,-5.3863],i:"🏘️",ma:true,d:"Fnideq (Castillejos) · ciudad marroquí limítrofe. Base logística de los cruces hacia Ceuta."},
+  {n:"Cuartel Gendarmería Fnideq",c:[35.8370,-5.3880],i:"🛡️",ma:true,d:"Gendarmería Real Marroquí · cuartel en Fnideq. ~600 efectivos en la zona fronteriza."},
+  {n:"Comisaría DGSN Fnideq",c:[35.8395,-5.3845],i:"👮",ma:true,d:"Policía Marroquí (DGSN) · comisaría de Fnideq. ~350 efectivos."},
+  {n:"Puesto fronterizo marroquí",c:[35.8910,-5.3550],i:"⛨",ma:true,d:"Puesto fronterizo marroquí · control de acceso sur del Tarajal (Bab Sebta)."}
 ];
 INFRA.forEach(x=>{
   const ic=L.divIcon({className:"",html:`<div class="infrapin${x.ma?" ma":""}">${x.i}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
-  L.marker(x.c,{icon:ic,zIndexOffset:x.ma?100:200}).addTo(map).bindTooltip(x.n,{direction:"top",opacity:.9});
+  L.marker(x.c,{icon:ic,zIndexOffset:x.ma?100:200}).addTo(map)
+    .bindTooltip(x.n,{direction:"top",opacity:.9})
+    .bindPopup(`<b style="color:${x.ma?"#ec407a":"var(--cyan)"}">${x.n}</b><br>${esc(x.d)}<br><span style="color:var(--dim)">${x.c[0].toFixed(4)}° N, ${x.c[1].toFixed(4)}° W</span>`);
 });
 
 /* zonas dinamicas + heatmap */
@@ -469,7 +476,9 @@ function drawHeat(events){
   events.forEach(e=>{const z=(e.zone&&e.zone.length===2)?e.zone:zoneOf(e.title+" "+(e.desc||""));if(z){const k=z[0]+","+z[1];byZone[k]=byZone[k]||{c:z,n:0,max:0};byZone[k].n++;byZone[k].max=Math.max(byZone[k].max,e.sev);}});
   Object.values(byZone).forEach(z=>{
     const r=350+z.n*90;
-    heatLayer.push(L.circle(z.c,{radius:r,color:"rgba(0,229,255,.001)",fillColor:z.max>=8?"#ff3b3b":z.max>=6?"#ff8c00":"#00e5ff",fillOpacity:Math.min(.16+z.n*.02,.3)}).addTo(map));
+    const l=L.circle(z.c,{radius:r,color:"rgba(0,229,255,.001)",fillColor:z.max>=8?"#ff3b3b":z.max>=6?"#ff8c00":"#00e5ff",fillOpacity:Math.min(.16+z.n*.02,.3)}).addTo(map);
+    l.bindTooltip(`${z.n} evento${z.n>1?"s":""} · máx severidad ${z.max}/10`,{direction:"top",opacity:.85});
+    heatLayer.push(l);
   });
 }
 const ZONES={
@@ -491,11 +500,12 @@ function zoneOf(text){const t=norm(text);for(const z in ZONES)if(t.includes(z))r
 const simCanvas=$("simcanvas"),sctx=simCanvas.getContext("2d");
 let SIM={on:true,ents:[],lastWave:0,lastFrame:0};
 const TARAJAL=[35.8936,-5.3544],BIUTZ=[35.9160,-5.3490],INLAND=[35.8890,-5.3200];
-function sizeSim(){const r=document.querySelector(".mapwrap").getBoundingClientRect();
-  simCanvas.width=r.width*devicePixelRatio;simCanvas.height=r.height*devicePixelRatio;
+function sizeSim(){const r=map.getContainer().getBoundingClientRect();
+  simCanvas.width=Math.max(1,r.width)*devicePixelRatio;simCanvas.height=Math.max(1,r.height)*devicePixelRatio;
   sctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
-window.addEventListener("resize",sizeSim);sizeSim();
-map.on("move zoom moveend zoomend",()=>{});
+window.addEventListener("resize",sizeSim);
+map.on("resize",sizeSim);
+sizeSim();
 const ll=p=>map.latLngToContainerPoint(L.latLng(p[0],p[1]));
 function jitterEnt(e,amp){e.jx=(e.jx||0)+rnd(-amp,amp);e.jy=(e.jy||0)+rnd(-amp,amp);
   e.jx=Math.max(-30,Math.min(30,e.jx));e.jy=Math.max(-30,Math.min(30,e.jy));}
@@ -510,6 +520,61 @@ function pathPos(route,t){const n=route.length-1;const seg=Math.min(n,Math.floor
 function addShip(route,speed,phase,kind){
   SIM.ents.push({type:"ship",kind:kind||"cargo",route,t:phase||0,speed,dir:1});
 }
+function entPos(e,jit){
+  switch(e.type){
+    case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":
+      if(jit!==false)jitterEnt(e,.25);
+      return ll(e.home);
+    case "wave":{
+      const q=ll(lerp(e.home,e.dest,e.t));
+      q.x+=Math.sin(e.t*40+e.j)*e.j;q.y+=Math.cos(e.t*50+e.j)*e.j;
+      return q;
+    }
+    case "ship":return ll(pathPos(e.route,e.t));
+    case "cross":return ll(e.home);
+    default:return null;
+  }
+}
+function zoneName(c){
+  for(const z in ZONES){const q=ZONES[z];if(Math.abs(q[0]-c[0])<.002&&Math.abs(q[1]-c[1])<.002)return z.charAt(0).toUpperCase()+z.slice(1);}
+  return c[0].toFixed(3)+", "+c[1].toFixed(3);
+}
+function simLabel(e){
+  switch(e.type){
+    case "migr":return "🟠 Inmigrante · "+zoneName(e.home);
+    case "migr_ma":return "🟡 Inmigrante (Marruecos) · "+zoneName(e.home);
+    case "wave":return "🟠 Inmigrante en tránsito · entrada frontera";
+    case "police":return "🔵 Policía Nacional · patrulla";
+    case "gc":return "🟢 Guardia Civil · patrulla";
+    case "army":return "🟤 Ejército (CEG) · patrulla";
+    case "customs":return "🟡 Vigilancia Aduanera · patrulla";
+    case "police_ma":return "🟣 Policía Marroquí (DGSN)";
+    case "gendarmerie":return "🩷 Gendarmería Real";
+    case "far":return "⬛ FAR (Ejército Marroquí)";
+    case "ship":return e.kind==="ferry"?"⛴ Ferry Ceuta ↔ Algeciras":e.kind==="patrol"?"🚤 Patrullera (Estrecho)":e.kind==="fishing"?"🎣 Pesquero local":"🚢 Mercante (tráfico del Estrecho)";
+    case "cross":return "✝ Fallecido en el mar";
+    default:return "·";
+  }
+}
+/* hover: info de la entidad mas cercana */
+const mapEl=map.getContainer();
+mapEl.addEventListener("mousemove",e=>{
+  const r=mapEl.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  let best=null,bd=10;
+  for(const ent of SIM.ents){
+    if(ent._dead)continue;
+    const p=entPos(ent,false);
+    if(!p)continue;
+    const d=Math.hypot(p.x-mx,p.y-my);
+    if(d<bd){bd=d;best=ent;}
+  }
+  const tip=$("simtip");
+  if(best){tip.textContent=simLabel(best);tip.style.display="block";
+    tip.style.left=Math.min(r.width-230,mx+12)+"px";tip.style.top=(my+14)+"px";}
+  else tip.style.display="none";
+});
+mapEl.addEventListener("mouseleave",()=>{$("simtip").style.display="none";});
 const FERRY=[[35.8940,-5.3110],[35.9200,-5.3300],[35.9450,-5.3600],[35.9700,-5.3850],[36.0000,-5.4050],[36.0400,-5.4250],[36.0800,-5.4380],[36.1270,-5.4430]];
 const STR_W=[[35.9200,-5.6000],[35.9300,-5.5000],[35.9400,-5.4000],[35.9500,-5.3000],[35.9550,-5.2000]];
 const STR_E=STR_W.slice().reverse();
@@ -564,28 +629,18 @@ function simTick(ts){
     SIM.lastWave=now;
     spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(6,14)));
   }
-  const draw=[];const upd=[];
+  const draw=[];
   for(const e of SIM.ents){
-    const p=(()=>{
-      switch(e.type){
-        case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":
-          jitterEnt(e,.25);return ll(e.home);
-        case "wave":{
-          e.t+=e.speed*dt;if(e.t>=1)return null;
-          const q=ll(lerp(e.home,e.dest,e.t));q.x+=Math.sin(e.t*40+e.j)*e.j;q.y+=Math.cos(e.t*50+e.j)*e.j;return q;
-        }
-        case "ship":{
-          e.t+=e.speed*dt*e.dir;
-          if(e.t>=1){if(e.kind==="ferry"){e.t=0;}else{e.t=1;e.dir=-1;}}
-          if(e.t<=0&&e.dir<0){e.t=0;e.dir=1;}
-          return ll(pathPos(e.route,e.t));
-        }
-        case "cross":return ll(e.home);
-        default:return null;
-      }
-    })();
+    if(e.type==="wave"){e.t+=e.speed*dt;if(e.t>=1){e._dead=true;continue;}}
+    if(e.type==="ship"){
+      e.t+=e.speed*dt*e.dir;
+      if(e.t>=1){if(e.kind==="ferry")e.t=0;else{e.t=1;e.dir=-1;}}
+      if(e.t<=0&&e.dir<0){e.t=0;e.dir=1;}
+    }
+    const p=entPos(e);
     if(p)draw.push([e,p]);
   }
+  if(SIM.ents.some(e=>e._dead))SIM.ents=SIM.ents.filter(e=>!e._dead);
   // dibujar cruces primero (fondo)
   for(const[e,p]of draw)if(e.type==="cross"){
     sctx.strokeStyle="rgba(255,255,255,.85)";sctx.lineWidth=2;sctx.shadowColor="#fff";sctx.shadowBlur=6;
