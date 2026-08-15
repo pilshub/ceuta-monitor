@@ -780,21 +780,21 @@ function simTick(ts){
     if(e.type==="cross")continue;
     let color="#fff",r=3,sq=false,ship=false;
     switch(e.type){
-      case "migr":color="#ff8c00";r=5;break;
-      case "migr_ma":color="#ffd60a";r=5;break;
-      case "wave":color="#ff6d00";r=5;break;
-      case "police":color="#2f6bff";r=6;break;
-      case "gc":color="#00c853";r=6;break;
-      case "army":color="#8d6e63";r=5;sq=true;break;
-      case "customs":color="#fdd835";r=5;break;
-      case "police_ma":color="#ab47bc";r=6;break;
-      case "gendarmerie":color="#ec407a";r=6;break;
-      case "far":color="#5d4037";r=5;sq=true;break;
-      case "ship":ship=true;r=e.kind==="ferry"?7:5;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
+      case "migr":color="#ff8c00";r=7;break;
+      case "migr_ma":color="#ffd60a";r=7;break;
+      case "wave":color="#ff6d00";r=7;break;
+      case "police":color="#2f6bff";r=8;break;
+      case "gc":color="#00c853";r=8;break;
+      case "army":color="#8d6e63";r=7;sq=true;break;
+      case "customs":color="#fdd835";r=7;break;
+      case "police_ma":color="#ab47bc";r=8;break;
+      case "gendarmerie":color="#ec407a";r=8;break;
+      case "far":color="#5d4037";r=7;sq=true;break;
+      case "ship":ship=true;r=e.kind==="ferry"?9:7;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
       case "combat":{
         const cc=e.side?["#2f6bff","#00c853","#8d6e63"][Math.floor(Math.random()*3)]:["#ab47bc","#5d4037","#ec407a"][Math.floor(Math.random()*3)];
         sctx.fillStyle=cc;sctx.strokeStyle="rgba(0,0,0,.5)";sctx.lineWidth=1;
-        sctx.fillRect(p.x-3,p.y-3,6,6);sctx.strokeRect(p.x-3,p.y-3,6,6);continue;
+        sctx.fillRect(p.x-4,p.y-4,8,8);sctx.strokeRect(p.x-4,p.y-4,8,8);continue;
       }
     }
     sctx.beginPath();
