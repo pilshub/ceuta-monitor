@@ -200,6 +200,14 @@ footer a{color:var(--cyan)}
 .scan{position:fixed;left:0;right:0;height:120px;z-index:998;pointer-events:none;opacity:.3;
   background:linear-gradient(180deg,transparent,rgba(0,229,255,.1),transparent);animation:scan 7s linear infinite}
 @keyframes scan{0%{top:-140px}100%{top:110%}}
+/* ============ EASTER EGG: MODO GUERRA ============ */
+#warbanner{display:none;background:linear-gradient(90deg,#7a0000,#d40000,#7a0000);color:#fff;padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:3px;text-align:center;border-bottom:1px solid #ff5555;animation:warflash 1s infinite}
+body.war #warbanner{display:block}
+body.war::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:999;background:radial-gradient(ellipse at center,transparent 35%,rgba(255,0,0,.28));animation:warflash .9s infinite}
+body.war #map{animation:shake .1s infinite}
+body.war #logo{border-color:#ff3333;box-shadow:0 0 22px rgba(255,0,0,.85);animation:shake .15s infinite}
+@keyframes warflash{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(.6px,-.6px)}40%{transform:translate(-.6px,.6px)}60%{transform:translate(.4px,.4px)}80%{transform:translate(-.4px,-.4px)}}
 /* ============ MÓVIL: banners compactos + leyenda colapsada ============ */
 @media (max-width:720px){
   #crisis{padding:6px 10px;font-size:10px;letter-spacing:1px}
@@ -222,6 +230,7 @@ footer a{color:var(--cyan)}
 <div class="wrap">
 
 <div id="crisis">⚠ <span class="big">MODO CRISIS ACTIVO</span><span>Múltiples eventos de severidad alta en 24 h — protocolo de atención reforzada</span></div>
+<div id="warbanner">⚔ MODO GUERRA — SIMULACIÓN DE BATALLA ACTIVADA</div>
 
 <header>
   <div class="h-in">
@@ -584,6 +593,15 @@ function entPos(e,jit){
       return q;
     }
     case "ship":return ll(pathPos(e.route,e.t));
+    case "combat":{
+      e.home[0]+=e.dir*0.00004;
+      if(Math.abs(e.home[0]-35.8924)<0.00035){
+        e._dead=true;
+        const q=ll(e.home);WAR.expl.push({x:q.x,y:q.y,r:rnd(8,20),born:performance.now()});
+        return null;
+      }
+      const q=ll(e.home);q.x+=e.jx;q.y+=e.jy;return q;
+    }
     case "cross":return ll(e.home);
     default:return null;
   }
@@ -605,6 +623,7 @@ function simLabel(e){
     case "gendarmerie":return "🩷 Gendarmería Real";
     case "far":return "⬛ FAR (Ejército Marroquí)";
     case "ship":return e.kind==="ferry"?"⛴ Ferry Ceuta ↔ Algeciras":e.kind==="patrol"?"🚤 Patrullera (Estrecho)":e.kind==="fishing"?"🎣 Pesquero local":"🚢 Mercante (tráfico del Estrecho)";
+    case "combat":return e.side?"⚔ Unidad española en combate · frente del Tarajal":"⚔ Unidad marroquí en combate · frente del Tarajal";
     case "cross":return "✝ Fallecido en el mar";
     default:return "·";
   }
@@ -696,6 +715,22 @@ function simTick(ts){
     if(p)draw.push([e,p]);
   }
   if(SIM.ents.some(e=>e._dead))SIM.ents=SIM.ents.filter(e=>!e._dead);
+  /* MODO GUERRA (easter egg): combates en la frontera + oleadas de huida */
+  if(WAR.on){
+    if(WAR.t===undefined)WAR.t=0;
+    WAR.t+=dt;
+    if(WAR.t-WAR.lastSpawn>200&&SIM.ents.filter(e=>e.type==="combat").length<80){
+      WAR.lastSpawn=WAR.t;
+      const es=Math.random()<.5;
+      SIM.ents.push({type:"combat",home:[es?35.8908:35.8942,rnd(-5.359,-5.346)],dir:es?1:-1,side:es,jx:rnd(-3,3),jy:rnd(-3,3)});
+    }
+    if(WAR.t-WAR.lastExpl>140){
+      WAR.lastExpl=WAR.t;
+      const p=ll([rnd(35.8895,35.8948),rnd(-5.362,-5.344)]);
+      WAR.expl.push({x:p.x,y:p.y,r:rnd(6,18),born:performance.now()});
+    }
+    if(WAR.t-WAR.lastWave>1500){SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(10,20)));}
+  }
   // dibujar cruces primero (fondo)
   for(const[e,p]of draw)if(e.type==="cross"){
     sctx.strokeStyle="rgba(255,255,255,.85)";sctx.lineWidth=2;sctx.shadowColor="#fff";sctx.shadowBlur=6;
@@ -716,6 +751,10 @@ function simTick(ts){
       case "gendarmerie":color="#ec407a";r=4;break;
       case "far":color="#5d4037";r=3.5;sq=true;break;
       case "ship":ship=true;r=e.kind==="ferry"?5:3.5;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
+      case "combat":{
+        const cc=e.side?["#2f6bff","#00c853","#8d6e63"][Math.floor(Math.random()*3)]:["#ab47bc","#5d4037","#ec407a"][Math.floor(Math.random()*3)];
+        sctx.fillStyle=cc;sctx.shadowColor=cc;sctx.shadowBlur=6;sctx.fillRect(p.x-2,p.y-2,4,4);sctx.shadowBlur=0;continue;
+      }
     }
     sctx.beginPath();
     if(ship){
@@ -728,6 +767,19 @@ function simTick(ts){
     }
     if(sq){sctx.fillStyle=color;sctx.shadowColor=color;sctx.shadowBlur=6;sctx.fillRect(p.x-r,p.y-r,r*2,r*2);sctx.shadowBlur=0;}
     else{sctx.fillStyle=color;sctx.shadowColor=color;sctx.shadowBlur=6;sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.shadowBlur=0;}
+  }
+  /* explosiones del modo guerra encima de todo */
+  if(WAR.on){
+    for(const x of WAR.expl){
+      const a=1-(performance.now()-x.born)/650;
+      if(a<=0)continue;
+      sctx.globalAlpha=Math.min(1,a);
+      const g=sctx.createRadialGradient(x.x,x.y,0,x.x,x.y,x.r);
+      g.addColorStop(0,"#fff7c0");g.addColorStop(.4,"#ff8c2a");g.addColorStop(1,"rgba(255,20,0,0)");
+      sctx.fillStyle=g;sctx.beginPath();sctx.arc(x.x,x.y,x.r,0,7);sctx.fill();
+    }
+    sctx.globalAlpha=1;
+    WAR.expl=WAR.expl.filter(x=>performance.now()-x.born<650);
   }
   requestAnimationFrame(simTick);
 }
@@ -764,6 +816,35 @@ $("layersbtn").addEventListener("click",function(){
   const on=lp.style.display==="none";
   lp.style.display=on?"block":"none";
   this.classList.toggle("on",on);
+});
+/* ============ EASTER EGG: MODO GUERRA ============ */
+let WAR={on:false,expl:[],lastExpl:0,lastSpawn:0};
+function toggleWar(){
+  WAR.on=!WAR.on;
+  document.body.classList.toggle("war",WAR.on);
+  if(WAR.on){
+    $("tscore").textContent="10/10";$("tscore").style.color="#ff1a1a";
+    $("tname").textContent="⚔ GUERRA TOTAL";
+    $("tfill").style.width="100%";$("tfill").style.background="#ff1a1a";
+    try{if($("mute").textContent==="🔊"){beep();setTimeout(beep,300);setTimeout(beep,600);}}catch(e){}
+  }else{
+    updateThreat(ALL,FEEDS.length);
+  }
+}
+/* secreto 1: 5 clics en el logo */
+let logoClicks=0,logoTimer=0;
+$("logo").addEventListener("click",()=>{
+  logoClicks++;clearTimeout(logoTimer);
+  logoTimer=setTimeout(()=>logoClicks=0,4000);
+  if(logoClicks>=5){logoClicks=0;toggleWar();}
+});
+/* secreto 2: codigo Konami (teclado) + Escape para salir */
+const KONAMI=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+let konamiIdx=0;
+document.addEventListener("keydown",e=>{
+  if(e.key===KONAMI[konamiIdx]){konamiIdx++;if(konamiIdx===KONAMI.length){konamiIdx=0;toggleWar();}}
+  else konamiIdx=(e.key===KONAMI[0])?1:0;
+  if(WAR.on&&e.key==="Escape")toggleWar();
 });
 seedSim();
 requestAnimationFrame(simTick);
