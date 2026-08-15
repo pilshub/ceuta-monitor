@@ -487,8 +487,8 @@ function clusterEvents(evs){
 
 /* ============ MAPA ============ */
 const CEUTA=[35.8894,-5.3198];
-const map=L.map("map",{zoomControl:true,attributionControl:true});
-map.fitBounds([[35.830,-5.420],[35.925,-5.280]],{maxZoom:13});
+const map=L.map("map",{zoomControl:true,attributionControl:true,zoomSnap:0.5});
+map.setView([35.8750,-5.3450],12.5);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
 /* frontera Espana-Marruecos: linea visible + etiquetas de territorio */
 const BORDER=[[35.9165,-5.3835],[35.9140,-5.3750],[35.9120,-5.3680],[35.9105,-5.3600],[35.9100,-5.3550],[35.9160,-5.3492],[35.9090,-5.3478],[35.9000,-5.3485],[35.8950,-5.3520],[35.8936,-5.3544],[35.8908,-5.3555]];
