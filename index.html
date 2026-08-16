@@ -82,8 +82,9 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 .mapwrap .p-head .tag{font-size:9px;letter-spacing:3px;color:var(--dim);border:1px solid var(--line);padding:2px 7px}
 #map{height:62vh;min-height:420px;width:100%;background:#04080d;z-index:1}
 @media(max-width:960px){#map{height:52vh;min-height:360px}}
-.radar-badge{position:absolute;top:44px;right:10px;z-index:500;font-size:9px;letter-spacing:2px;color:var(--green);
-  border:1px solid rgba(0,255,157,.35);background:rgba(3,10,8,.8);padding:4px 8px;animation:pulse 2s infinite;pointer-events:none}
+.radar-badge{position:absolute;top:44px;right:10px;z-index:500;font-size:9px;letter-spacing:2px;color:var(--cyan);
+  border:1px solid rgba(0,255,157,.35);background:rgba(3,10,8,.8);padding:4px 8px;animation:pulse 2s infinite;pointer-events:none;
+  text-shadow:0 0 8px rgba(0,229,255,.8)}
 .radar-sweep{position:absolute;top:50%;left:50%;width:240px;height:240px;margin:-120px 0 0 -120px;z-index:450;pointer-events:none;
   border-radius:50%;border:1px solid rgba(0,229,255,.25);
   background:conic-gradient(from 0deg, transparent 0deg 300deg, rgba(0,229,255,.55) 335deg, transparent 360deg);
@@ -121,7 +122,6 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #flowbtn{position:absolute;top:8px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:4px 9px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 #flowbtn:hover,#flowbtn.on{background:rgba(255,214,10,.25);box-shadow:0 0 12px rgba(255,214,10,.4)}
 #flowbadge{position:absolute;top:52px;right:10px;z-index:520;background:rgba(40,20,0,.88);border:1px solid var(--amber);color:#ffd60a;padding:5px 10px;font-size:11px;font-weight:800;letter-spacing:1.2px;animation:warflash 1s infinite;box-shadow:0 0 14px rgba(255,214,10,.3)}
-.radar-badge{color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.8)}
 .sim-note{position:absolute;right:8px;bottom:34px;z-index:520;font-size:8px;letter-spacing:1px;color:#ffd60a;opacity:.9;background:rgba(3,8,14,.65);padding:2px 6px;border:1px solid rgba(255,214,10,.3);pointer-events:none}
 .leaflet-control-zoom a{background:rgba(3,8,14,.85)!important;color:var(--cyan)!important;border-color:rgba(0,229,255,.3)!important}
 .leaflet-control-zoom a:hover{background:rgba(0,229,255,.15)!important}
@@ -418,6 +418,7 @@ function classify(title,desc){
 function category(title,desc){
   const t=norm(title+" "+(desc||""));
   const has=ps=>ps.some(p=>new RegExp("\\b"+p).test(t));
+  const ns=nMatch(t,SPORTS);
   if(has(["narcotr","drog","hachis","alijo","contrabando","incaut","tabaco"]))return "NARCOTRÁFICO";
   if(has(["patera","rescate","interceptad","desembarco","migrantes","inmigrant","frontera","valla","cruce"]))return "FRONTERA / MIGRACIÓN";
   if(has(["muert","fallecid","asesin","tirote","apunal","violacion","agresion","incendio","accidente","explosion","derrumbe","detenid","secuestr","huelga","manifestacion"]))return "SUCESO";
@@ -598,8 +599,9 @@ function zoneOf(text){const t=norm(text);for(const z in ZONES)if(t.includes(z))r
 const simCanvas=$("simcanvas"),sctx=simCanvas.getContext("2d");
 let SIM={on:true,ents:[],lastWave:0,lastFrame:0,vis:{migr:1,migr_ma:1,wave:1,police:1,gc:1,army:1,customs:1,police_ma:1,gendarmerie:1,far:1,ship:1,cross:1}};
 const TARAJAL=[35.8936,-5.3544],BIUTZ=[35.9160,-5.3490],INLAND=[35.8890,-5.3200];
+function simDpr(){return Math.min(devicePixelRatio||1,1.5);}
 function sizeSim(){const r=map.getContainer().getBoundingClientRect();
-  const dpr=Math.min(devicePixelRatio||1,1.5);
+  const dpr=simDpr();
   simCanvas.width=Math.max(1,r.width)*dpr;simCanvas.height=Math.max(1,r.height)*dpr;
   sctx.setTransform(dpr,0,0,dpr,0,0);}
 window.addEventListener("resize",sizeSim);
@@ -609,7 +611,8 @@ const ll=p=>map.latLngToContainerPoint(L.latLng(p[0],p[1]));
 function jitterEnt(e,amp){e.jx=(e.jx||0)+rnd(-amp,amp);e.jy=(e.jy||0)+rnd(-amp,amp);
   e.jx=Math.max(-30,Math.min(30,e.jx));e.jy=Math.max(-30,Math.min(30,e.jy));}
 function spawnStatic(type,home,n,amp){
-  for(let i=0;i<n;i++)SIM.ents.push({type,home,amp:amp||18,jx:rnd(-amp||18,amp||18),jy:rnd(-amp||18,amp||18)});
+  const a=amp||18;
+  for(let i=0;i<n;i++)SIM.ents.push({type,home,amp:a,jx:rnd(-a,a),jy:rnd(-a,a)});
 }
 function spawnWave(from,to,n){
   for(let i=0;i<n;i++)SIM.ents.push({type:"wave",home:from,dest:to,t:rnd(0,.05),speed:rnd(.000085,.00014),j:rnd(0,12)});
@@ -621,9 +624,10 @@ function addShip(route,speed,phase,kind){
 }
 function entPos(e,jit){
   switch(e.type){
-    case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":
+    case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":{
       if(jit!==false)jitterEnt(e,.25);
-      return ll(e.home);
+      const q=ll(e.home);q.x+=(e.jx||0);q.y+=(e.jy||0);return q;
+    }
     case "wave":{
       const q=ll(lerp(e.home,e.dest,e.t));
       q.x+=Math.sin(e.t*40+e.j)*e.j;q.y+=Math.cos(e.t*50+e.j)*e.j;
@@ -631,13 +635,13 @@ function entPos(e,jit){
     }
     case "ship":return ll(pathPos(e.route,e.t));
     case "combat":{
-      e.home[0]+=e.dir*0.00004;
+      if(jit!==false)e.home[0]+=e.dir*0.00004;
       if(Math.abs(e.home[0]-35.8924)<0.00035){
         e._dead=true;
         const q=ll(e.home);WAR.expl.push({x:q.x,y:q.y,r:rnd(8,20),born:performance.now()});
         return null;
       }
-      const q=ll(e.home);q.x+=e.jx;q.y+=e.jy;return q;
+      const q=ll(e.home);q.x+=(e.jx||0);q.y+=(e.jy||0);return q;
     }
     case "cross":return ll(e.home);
     default:return null;
@@ -749,7 +753,8 @@ function seedSim(){
 let lastEnt=0;
 function simTick(ts){
   const dt=Math.min(50,ts-(SIM.lastFrame||ts));SIM.lastFrame=ts;
-  const W=simCanvas.width/devicePixelRatio,H=simCanvas.height/devicePixelRatio;
+  const dpr=simDpr();
+  const W=simCanvas.width/dpr,H=simCanvas.height/dpr;
   sctx.clearRect(0,0,W,H);
   if(!SIM.on){requestAnimationFrame(simTick);return;}
   const now=Date.now();
@@ -766,7 +771,7 @@ function simTick(ts){
       if(e.t>=1){if(e.kind==="ferry")e.t=0;else{e.t=1;e.dir=-1;}}
       if(e.t<=0&&e.dir<0){e.t=0;e.dir=1;}
     }
-    if(!SIM.vis[e.type])continue;
+    if(SIM.vis[e.type]===0)continue;
     const p=entPos(e);
     if(p)draw.push([e,p]);
   }
@@ -785,7 +790,7 @@ function simTick(ts){
       const p=ll([rnd(35.8895,35.8948),rnd(-5.362,-5.344)]);
       WAR.expl.push({x:p.x,y:p.y,r:rnd(6,18),born:performance.now()});
     }
-    if(WAR.t-WAR.lastWave>1500){SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(10,20)));}
+    if(WAR.t-(WAR.lastWave||0)>1500){WAR.lastWave=WAR.t;SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(10,20)));}
   }
   /* FLUJO DE ENTRADA: rafagas por Tarajal y Biutz con contador */
   if(FLUJO.on){
@@ -874,9 +879,17 @@ $("simtoggle").addEventListener("click",function(){SIM.on=!SIM.on;this.textConte
 /* leyenda colapsable */
 $("legendbtn").addEventListener("click",function(){
   const l=$("simlegend");
-  const show=getComputedStyle(l).display==="none";
-  l.style.display=show?"block":"none";
-  this.classList.toggle("on",show);
+  const mobile=matchMedia("(max-width:720px)").matches;
+  if(mobile){
+    const show=!l.classList.contains("open");
+    l.classList.toggle("open",show);
+    l.style.display="";
+    this.classList.toggle("on",show);
+  }else{
+    const show=getComputedStyle(l).display==="none";
+    l.style.display=show?"block":"none";
+    this.classList.toggle("on",show);
+  }
 });
 if(getComputedStyle($("simlegend")).display!=="none")$("legendbtn").classList.add("on");
 /* capas del mapa: mostrar/ocultar categorias */
@@ -905,14 +918,17 @@ $("layersbtn").addEventListener("click",function(){
   this.classList.toggle("on",on);
 });
 /* ============ EASTER EGG: MODO GUERRA ============ */
-let WAR={on:false,expl:[],lastExpl:0,lastSpawn:0};
+let WAR={on:false,expl:[],lastExpl:0,lastSpawn:0,lastWave:0,t:0};
 /* ============ FLUJO DE ENTRADA MASIVA (boton PLAY) ============ */
 const FLOW_DESTS=[[35.8894,-5.3198],[35.8926,-5.3368],[35.8900,-5.3300],[35.9167,-5.3833],[35.8890,-5.3000],[35.8840,-5.3180],[35.8970,-5.3210],[35.8870,-5.2900]];
 let FLUJO={on:false,count:0,last:0,start:0};
+function enableSim(){
+  SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.remove("on");
+}
 $("flowbtn").addEventListener("click",function(){
   if(!FLUJO.on){
     FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
-    if(!SIM.on){SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.add("on");}
+    if(!SIM.on)enableSim();
     this.textContent="⏸ FLUJO";this.classList.add("on");
     $("flowbadge").style.display="block";$("flowcnt").textContent="0";
   }else{
@@ -923,7 +939,7 @@ $("flowbtn").addEventListener("click",function(){
 /* modos por URL para demo/verificacion: ?flujo=1 ?guerra=1 */
 if(location.search.includes("flujo")){
   FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
-  SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.add("on");
+  enableSim();
   $("flowbtn").textContent="⏸ FLUJO";$("flowbtn").classList.add("on");
   $("flowbadge").style.display="block";$("flowcnt").textContent="0";
 }
@@ -932,10 +948,11 @@ function toggleWar(){
   WAR.on=!WAR.on;
   document.body.classList.toggle("war",WAR.on);
   if(WAR.on){
+    WAR.t=0;WAR.lastExpl=0;WAR.lastSpawn=0;WAR.lastWave=0;
     $("tscore").textContent="10/10";$("tscore").style.color="#ff1a1a";
     $("tname").textContent="⚔ GUERRA TOTAL";
     $("tfill").style.width="100%";$("tfill").style.background="#ff1a1a";
-    try{if($("mute").textContent==="🔊"){beep();setTimeout(beep,300);setTimeout(beep,600);}}catch(e){}
+    try{if($("mute").textContent==="🔊"){beep(10);setTimeout(()=>beep(10),300);setTimeout(()=>beep(10),600);}}catch(e){}
   }else{
     updateThreat(ALL,FEEDS.length);
   }
@@ -997,13 +1014,14 @@ function drawFeed(){
   }).join("");
 }
 function drawIncidents(){
-  const cats=["FRONTERA / MIGRACIÓN","NARCOTRÁFICO","SUCESO","POLÍTICA","LOCAL"];
+  const cats=["FRONTERA / MIGRACIÓN","NARCOTRÁFICO","SUCESO","POLÍTICA","DEPORTES","LOCAL"];
   const max={};
   ALL.forEach(e=>{max[e.cat]=(max[e.cat]||0)+1;});
   const total=Math.max(1,ALL.length);
+  const colOf=c=>c==="FRONTERA / MIGRACIÓN"?"#ff8c00":c==="NARCOTRÁFICO"?"#ff3b3b":c==="SUCESO"?"#ffd60a":c==="POLÍTICA"?"#00e5ff":c==="DEPORTES"?"#00ff9d":"#5f7a8c";
   $("incidents").innerHTML=cats.map(c=>{
     const n=max[c]||0;
-    return `<div class="il"><span class="lb">${c}</span><span class="ib"><i style="width:${(n/total*100).toFixed(0)}%;background:${c==="FRONTERA / MIGRACIÓN"?"#ff8c00":c==="NARCOTRÁFICO"?"#ff3b3b":c==="SUCESO"?"#ffd60a":c==="POLÍTICA"?"#00e5ff":"#5f7a8c"}"></i></span><b style="width:28px;text-align:right">${n}</b></div>`;
+    return `<div class="il"><span class="lb">${c}</span><span class="ib"><i style="width:${(n/total*100).toFixed(0)}%;background:${colOf(c)}"></i></span><b style="width:28px;text-align:right">${n}</b></div>`;
   }).join("");
   // inmigrantes a cada lado de la frontera (derivado del feed 24 h)
   const migEv=ALL.filter(e=>e.cat==="FRONTERA / MIGRACIÓN");
@@ -1087,13 +1105,14 @@ document.addEventListener("keydown",e=>{if(e.key==="f"||e.key==="F"){document.fu
 /* ============ scan ============ */
 async function scan(){
   $("status").innerHTML="SENSORES<br><b style='color:var(--amber)'>ESCANEANDO…</b>";
-  let events=[],srcOk=0,mode="DIRECTO",updated="";
+  let events=[],srcOk=0,mode="DIRECTO",updated="",sources=FEEDS.map(f=>f.n);
   try{
     const r=await fetch("./feed.json?t="+Date.now(),{signal:AbortSignal.timeout(9000)});
     if(r.ok){const j=await r.json();
       if(j&&Array.isArray(j.events)&&j.events.length){
         events=j.events.map(e=>({...e,cat:e.cat||"LOCAL"}));
-        srcOk=(j.sources||[]).length||FEEDS.length;mode="CURADOR 15-MIN";updated=j.updated||"";
+        sources=Array.isArray(j.sources)&&j.sources.length?j.sources:sources;
+        srcOk=sources.length;mode="CURADOR 15-MIN";updated=j.updated||"";
       }}
   }catch(e){}
   if(!events.length){
@@ -1110,6 +1129,7 @@ async function scan(){
       }catch(e){return {f,ok:false,events:[]};}
     }));
     srcOk=results.filter(r=>r.ok).length;
+    sources=results.filter(r=>r.ok).map(r=>r.f.n);
     const seenKeys=new Set(),all=[];
     for(const r of results)for(const e of r.events){const k=dedupeKey(e.title);if(seenKeys.has(k))continue;seenKeys.add(k);all.push(e);}
     all.sort(sevSort);events=all.slice(0,60);
@@ -1120,9 +1140,9 @@ async function scan(){
   updateThreat(events,srcOk);
   renderCats(events);
   applyFilters();
-  $("srcnames").textContent=FEEDS.map(f=>f.n.toUpperCase()).join(" · ");
+  $("srcnames").textContent=sources.map(s=>String(s).toUpperCase()).join(" · ");
   $("updated").textContent=updated?updated.replace("T"," ").slice(0,16)+" UTC":"AHORA";
-  $("status").innerHTML="SENSORES<br><b>"+srcOk+"/"+FEEDS.length+" ONLINE · "+mode+"</b>";
+  $("status").innerHTML="SENSORES<br><b>"+srcOk+"/"+Math.max(sources.length,FEEDS.length)+" ONLINE · "+mode+"</b>";
   const top=events.length?Math.max(...events.map(e=>e.sev)):0;
   if(top>prevMax&&top>=6)beep(top);
   prevMax=top;

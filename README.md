@@ -1,6 +1,6 @@
 # CEUTA // SITUATION MONITOR
 
-Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, nivel de amenaza 1-10, feed agrupado por historia, gráfica de evolución de severidad y filtros.
+Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, nivel de amenaza 1-10, feed agrupado por historia, gráfica de evolución de severidad, filtros y simulación táctica (marcada como datos simulados).
 
 **URLs públicas:**
 - https://ceuta-monitor.vercel.app (principal — auto-deploy en cada push del watchdog)
@@ -8,8 +8,8 @@ Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, ni
 
 ## Cómo funciona
 
-- Un watchdog local (cron de Hermes, cada 30 min) recolecta los RSS de **6 sensores**, clasifica cada noticia con severidad **1–10** (heurística por keywords con anti-falsos-positivos deportivos), deduplica y genera `feed.json` + `historial.json`, que sube automáticamente a este repo (`main`).
-- Vercel y GitHub Pages sirven el dashboard; el navegador lee `feed.json` (network-first con Service Worker, offline incluido).
+- Un watchdog local (cron de Hermes, ~15–30 min) recolecta los RSS de **5 sensores**, clasifica cada noticia con severidad **1–10** (heurística por keywords con anti-falsos-positivos deportivos), deduplica y genera `feed.json` + `historial.json`, que sube automáticamente a este repo (`main`).
+- Vercel y GitHub Pages sirven el dashboard; el navegador lee `feed.json` (network-first con Service Worker, offline incluido). Si `feed.json` falla, el cliente hace fallback RSS directo con la misma clasificación.
 - El watchdog también avisa por Telegram de las noticias ≥ severidad 6.
 
 ## Sensores
@@ -20,7 +20,6 @@ Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, ni
 | Ceuta Actualidad | https://www.ceutaactualidad.com/rss |
 | Ceuta TV | https://ceutatv.com/feed/ |
 | RTVCE | https://www.rtvce.es/rss |
-| Europa Press Ceuta | https://www.europapress.es/rss/ceuta/ |
 | Google News (Ceuta) | https://news.google.com/rss/search?q=Ceuta&hl=es&gl=ES&ceid=ES:es |
 
 ## API pública (JSON, CORS abierto)
@@ -32,7 +31,7 @@ Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, ni
     "events": [ { "title": "...", "link": "...", "src": "El Faro de Ceuta",
                   "ts": 1786815106, "sev": 9, "cat": "SUCESO", "zone": null } ] }
   ```
-- **`/historial.json`** — eventos acumulados por día (21 días, para gráficas).
+- **`/historial.json`** — eventos acumulados por día (ventana objetivo 21 días; el archivo crece con el watchdog).
   ```json
   { "days": { "2026-08-15": [ { "title": "...", "sev": 9, ... } ] } }
   ```
@@ -47,6 +46,11 @@ Monitor de situación de Ceuta en tiempo real. Dashboard estilo SOC con mapa, ni
 | 7–8 | 🟠 naranja | pateras, interceptaciones, detenciones, narcotráfico, incidentes frontera |
 | 5–6 | 🟡 amarillo | política, sanidad, presupuestos, obras |
 | 1–4 | 🟢 verde | cultura, deportes, rutina |
+
+## Demo / verificación
+
+- `?flujo=1` — activa la animación de entrada masiva
+- `?guerra=1` — easter egg modo guerra (también: 5 clics en el logo o Konami)
 
 ## Local
 
