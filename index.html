@@ -501,8 +501,8 @@ const CEUTA=[35.8894,-5.3198];
 const map=L.map("map",{zoomControl:true,attributionControl:true,zoomSnap:0.5});
 map.setView([35.8750,-5.3450],12.5);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
-/* frontera Espana-Marruecos: linea visible + etiquetas de territorio */
-const BORDER=[[35.9165,-5.3835],[35.9140,-5.3750],[35.9120,-5.3680],[35.9105,-5.3600],[35.9100,-5.3550],[35.9160,-5.3492],[35.9090,-5.3478],[35.9000,-5.3485],[35.8950,-5.3520],[35.8936,-5.3544],[35.8908,-5.3555]];
+/* frontera Espana-Marruecos: arco real de la valla (Biutz -> oeste -> Tarajal) */
+const BORDER=[[35.9168,-5.3494],[35.9140,-5.3525],[35.9110,-5.3550],[35.9080,-5.3570],[35.9050,-5.3585],[35.9020,-5.3595],[35.8990,-5.3600],[35.8960,-5.3598],[35.8940,-5.3585],[35.8929,-5.3570],[35.8927,-5.3558]];
 L.polyline(BORDER,{color:"#ffd60a",weight:16,opacity:.22,lineCap:"round",lineJoin:"round"}).addTo(map);
 L.polyline(BORDER,{color:"#ffd60a",weight:5,dashArray:"10 8",opacity:1,lineCap:"round",lineJoin:"round"}).addTo(map)
   .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
@@ -518,9 +518,9 @@ L.circle(CEUTA,{radius:2600,color:"#00e5ff",weight:1,fillColor:"#00e5ff",fillOpa
 /* infraestructura fija */
 const INFRA=[
   {n:"Comisaría Policía Nacional",c:[35.8893,-5.3105],i:"👮",ma:false,d:"Policía Nacional · comisaría principal de Ceuta (Av. San Francisco Javier). ~750 agentes en la ciudad."},
-  {n:"Comisaría El Príncipe",c:[35.8920,-5.3370],i:"👮",ma:false,d:"Policía Nacional · comisaría de distrito del barrio El Príncipe, zona de alta actividad policial."},
+  {n:"Comisaría El Príncipe",c:[35.8840,-5.3140],i:"👮",ma:false,d:"Policía Nacional · comisaría de distrito del barrio El Príncipe, zona de alta actividad policial."},
   {n:"Comandancia Guardia Civil",c:[35.8875,-5.3090],i:"🛡️",ma:false,d:"Guardia Civil · comandancia de Ceuta (Av. África). ~550 efectivos, incluye GEAS (buceadores) y Tráfico."},
-  {n:"Puesto GC Benzú",c:[35.9165,-5.3830],i:"🛡️",ma:false,d:"Guardia Civil · puesto fronterizo de Benzú, junto a la frontera del Biutz y la costa oeste."},
+  {n:"Puesto GC Benzú",c:[35.9127,-5.3736],i:"🛡️",ma:false,d:"Guardia Civil · puesto fronterizo de Benzú, en la playa de Benzú (costa oeste de Ceuta), vigilando la zona de la valla."},
   {n:"Comandancia General (Ejército)",c:[35.8883,-5.3053],i:"★",ma:false,d:"Ejército de Tierra · sede de la Comandancia General de Ceuta (Edificio del Revellín). ~3.200 efectivos."},
   {n:"Acuartelamiento García Aldave",c:[35.8780,-5.3300],i:"★",ma:false,d:"Ejército · acuartelamiento García Aldave (Campo Exterior), incluye el Centro de Instrucción de Reclutas (CIR)."},
   {n:"Tercio Duque de Alba (Legión)",c:[35.8720,-5.3320],i:"★",ma:false,d:"Ejército · Tercio 'Duque de Alba' 2º de La Legión. ~1.500 efectivos, unidad de élite acuartelada en Ceuta."},
@@ -715,7 +715,7 @@ function seedSim(){
   Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(300,20+z.n*30);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
   // poblacion base si hay crisis de frontera
   if(frontiera||Object.keys(zones).length<3){
-    const baseZones=[[[35.8926,-5.3368],220],[[35.8900,-5.3300],140],[[35.9167,-5.3833],180],[[35.8894,-5.3198],150],[[35.8840,-5.3180],110]];
+    const baseZones=[[[35.8926,-5.3368],220],[[35.8900,-5.3300],140],[[35.9127,-5.3740],180],[[35.8894,-5.3198],150],[[35.8840,-5.3180],110]];
     baseZones.forEach(([c,n])=>{if(!placed.has(c[0].toFixed(4)))spawnStatic("migr",c,n,16);});
   }
   // lado marroqui
@@ -726,7 +726,7 @@ function seedSim(){
   spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?140:45,26);
   // fuerzas espanolas: decenas patrullando
   spawnStatic("police",[35.8893,-5.3105],24,30);spawnStatic("police",[35.8920,-5.3370],16,26);spawnStatic("police",[35.8936,-5.3544],10,18);spawnStatic("police",[35.8970,-5.3210],8,20);
-  spawnStatic("gc",[35.8875,-5.3090],18,30);spawnStatic("gc",[35.9165,-5.3830],12,22);spawnStatic("gc",[35.8936,-5.3544],10,18);spawnStatic("gc",[35.8970,-5.3210],8,20);
+  spawnStatic("gc",[35.8875,-5.3090],18,30);spawnStatic("gc",[35.9127,-5.3736],12,22);spawnStatic("gc",[35.8936,-5.3544],10,18);spawnStatic("gc",[35.8970,-5.3210],8,20);
   spawnStatic("army",[35.8780,-5.3300],16,30);spawnStatic("army",[35.8883,-5.3053],12,24);spawnStatic("army",[35.8936,-5.3544],12,20);spawnStatic("army",[35.9160,-5.3490],10,18);
   spawnStatic("customs",[35.8940,-5.3110],10,22);
   // fuerzas marroquis
