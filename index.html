@@ -270,7 +270,7 @@ body.war #logo{border-color:#ff3333;box-shadow:0 0 22px rgba(255,0,0,.85);animat
 </header>
 
 <div class="mapwrap">
-  <div class="p-head"><span class="tag">TÁCTICO</span><h2>Mapa de situación · Ceuta y Fnideq</h2><span class="sp"></span><span style="font-size:9px;color:var(--dim);letter-spacing:1px">SIMULACIÓN DE TERRENO</span></div>
+  <div class="p-head"><span class="tag">TÁCTICO</span><h2>Mapa de situación · Ceuta y Fnideq</h2><span class="sp"></span><span style="font-size:9px;color:#9ab8cc;letter-spacing:1px">SIMULACIÓN DE TERRENO</span></div>
   <div id="map">
     <canvas id="simcanvas"></canvas>
     <div class="radar-sweep"></div>
@@ -496,8 +496,8 @@ map.setView([35.8750,-5.3450],12.5);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
 /* frontera Espana-Marruecos: linea visible + etiquetas de territorio */
 const BORDER=[[35.9165,-5.3835],[35.9140,-5.3750],[35.9120,-5.3680],[35.9105,-5.3600],[35.9100,-5.3550],[35.9160,-5.3492],[35.9090,-5.3478],[35.9000,-5.3485],[35.8950,-5.3520],[35.8936,-5.3544],[35.8908,-5.3555]];
-L.polyline(BORDER,{color:"#ffd60a",weight:14,opacity:.16,lineCap:"round",lineJoin:"round"}).addTo(map);
-L.polyline(BORDER,{color:"#ffd60a",weight:4,dashArray:"10 8",opacity:.95,lineCap:"round",lineJoin:"round"}).addTo(map)
+L.polyline(BORDER,{color:"#ffd60a",weight:16,opacity:.22,lineCap:"round",lineJoin:"round"}).addTo(map);
+L.polyline(BORDER,{color:"#ffd60a",weight:5,dashArray:"10 8",opacity:1,lineCap:"round",lineJoin:"round"}).addTo(map)
   .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
 L.marker([35.9080,-5.3300],{icon:L.divIcon({className:"",html:'<div class="side-lbl es">ESPAÑA · CEUTA</div>'}),interactive:false}).addTo(map);
 L.marker([35.8520,-5.3700],{icon:L.divIcon({className:"",html:'<div class="side-lbl ma">MARRUECOS</div>'}),interactive:false}).addTo(map);
