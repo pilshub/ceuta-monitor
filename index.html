@@ -501,8 +501,8 @@ const CEUTA=[35.8894,-5.3198];
 const map=L.map("map",{zoomControl:true,attributionControl:true,zoomSnap:0.5});
 map.setView([35.8750,-5.3450],12.5);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
-/* frontera Espana-Marruecos: arco real de la valla (Biutz -> oeste -> Tarajal) */
-const BORDER=[[35.9168,-5.3494],[35.9140,-5.3525],[35.9110,-5.3550],[35.9080,-5.3570],[35.9050,-5.3585],[35.9020,-5.3595],[35.8990,-5.3600],[35.8960,-5.3598],[35.8940,-5.3585],[35.8929,-5.3570],[35.8927,-5.3558]];
+/* frontera Espana-Marruecos: arco real de la valla (deja Benzú dentro de Ceuta) */
+const BORDER=[[35.9160,-5.3510],[35.9135,-5.3560],[35.9105,-5.3605],[35.9075,-5.3640],[35.9050,-5.3665],[35.9030,-5.3680],[35.9005,-5.3685],[35.8980,-5.3675],[35.8955,-5.3650],[35.8940,-5.3610],[35.8930,-5.3570],[35.8927,-5.3558]];
 L.polyline(BORDER,{color:"#ffd60a",weight:16,opacity:.22,lineCap:"round",lineJoin:"round"}).addTo(map);
 L.polyline(BORDER,{color:"#ffd60a",weight:5,dashArray:"10 8",opacity:1,lineCap:"round",lineJoin:"round"}).addTo(map)
   .bindTooltip("⛨ FRONTERA ESPAÑA-MARRUECOS",{permanent:true,direction:"center",className:"border-tip"});
