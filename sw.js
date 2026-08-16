@@ -1,5 +1,5 @@
 /* CEUTA // SITUATION MONITOR — service worker v4: shell network-first, media cache-first, datos network-first */
-const CACHE = "ceuta-monitor-v4";
+const CACHE = "ceuta-monitor-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./favicon.svg", "./icon-192.png", "./icon-512.png", "./logo.png", "./hero.jpg", "./music.mp3"];
 
 self.addEventListener("install", e => {

@@ -117,7 +117,7 @@ header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%
 #layerspanel .lyh{color:var(--cyan);font-size:8.5px;letter-spacing:2px;margin:4px 0 2px;border-bottom:1px solid var(--line);padding-bottom:2px}
 #simlegend b{color:#b8d4e8;font-size:9px}
 #simlegend .row{display:flex;align-items:center;gap:6px}
-#simlegend .sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+#simlegend .sw{width:5px;height:5px;border-radius:50%;flex:0 0 auto}
 #simtoggle{position:absolute;top:8px;left:10px;z-index:510;padding:4px 9px;font-size:9px;color:var(--cyan);border-color:var(--cyan);background:rgba(0,229,255,.08)}
 #flowbtn{position:absolute;top:8px;left:112px;z-index:510;background:rgba(255,214,10,.12);border:1px solid var(--amber);color:var(--amber);padding:4px 9px;font-size:9px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 #flowbtn:hover,#flowbtn.on{background:rgba(255,214,10,.25);box-shadow:0 0 12px rgba(255,214,10,.4)}
@@ -608,42 +608,45 @@ window.addEventListener("resize",sizeSim);
 map.on("resize",sizeSim);
 sizeSim();
 const ll=p=>map.latLngToContainerPoint(L.latLng(p[0],p[1]));
-function jitterEnt(e,amp){e.jx=(e.jx||0)+rnd(-amp,amp);e.jy=(e.jy||0)+rnd(-amp,amp);
-  e.jx=Math.max(-30,Math.min(30,e.jx));e.jy=Math.max(-30,Math.min(30,e.jy));}
-function spawnStatic(type,home,n,amp){
-  const a=amp||18;
-  for(let i=0;i<n;i++)SIM.ents.push({type,home,amp:a,jx:rnd(-a,a),jy:rnd(-a,a)});
+/* offset en grados (~0.001° ≈ 110 m). Los puntos quedan fijados al mapa al pan/zoom. */
+function geoOff(spread){return [rnd(-spread,spread),rnd(-spread,spread)];}
+function spawnStatic(type,home,n,spread){
+  const s=spread||0.0035;
+  for(let i=0;i<n;i++){
+    const o=geoOff(s);
+    SIM.ents.push({type,home:[home[0]+o[0],home[1]+o[1]]});
+  }
 }
 function spawnWave(from,to,n){
-  for(let i=0;i<n;i++)SIM.ents.push({type:"wave",home:from,dest:to,t:rnd(0,.05),speed:rnd(.000085,.00014),j:rnd(0,12)});
+  for(let i=0;i<n;i++){
+    const o0=geoOff(0.0007),o1=geoOff(0.0022);
+    SIM.ents.push({
+      type:"wave",
+      home:[from[0]+o0[0],from[1]+o0[1]],
+      dest:[to[0]+o1[0],to[1]+o1[1]],
+      t:rnd(0,.04),
+      speed:rnd(.00032,.00055),
+      phase:rnd(0,6.28)
+    });
+  }
 }
 function lerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}
 function pathPos(route,t){const n=route.length-1;const seg=Math.min(n,Math.floor(t*n));const tt=(t*n-seg);return lerp(route[seg],route[seg+1],tt);}
 function addShip(route,speed,phase,kind){
   SIM.ents.push({type:"ship",kind:kind||"cargo",route,t:phase||0,speed,dir:1});
 }
-function entPos(e,jit){
+function entPos(e){
   switch(e.type){
-    case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":{
-      if(jit!==false)jitterEnt(e,.25);
-      const q=ll(e.home);q.x+=(e.jx||0);q.y+=(e.jy||0);return q;
-    }
+    case "migr":case "migr_ma":case "police":case "gc":case "army":case "customs":case "police_ma":case "gendarmerie":case "far":case "cross":
+      return ll(e.home);
     case "wave":{
-      const q=ll(lerp(e.home,e.dest,e.t));
-      q.x+=Math.sin(e.t*40+e.j)*e.j;q.y+=Math.cos(e.t*50+e.j)*e.j;
-      return q;
+      /* wobble mínimo en geo, no en píxeles: se mueve con el mapa */
+      const wob=0.00015*Math.sin((e.t||0)*18+(e.phase||0));
+      const pos=lerp(e.home,e.dest,e.t);
+      return ll([pos[0]+wob,pos[1]+wob*0.6]);
     }
     case "ship":return ll(pathPos(e.route,e.t));
-    case "combat":{
-      if(jit!==false)e.home[0]+=e.dir*0.00004;
-      if(Math.abs(e.home[0]-35.8924)<0.00035){
-        e._dead=true;
-        const q=ll(e.home);WAR.expl.push({x:q.x,y:q.y,r:rnd(8,20),born:performance.now()});
-        return null;
-      }
-      const q=ll(e.home);q.x+=(e.jx||0);q.y+=(e.jy||0);return q;
-    }
-    case "cross":return ll(e.home);
+    case "combat":return ll(e.home);
     default:return null;
   }
 }
@@ -674,10 +677,10 @@ const mapEl=map.getContainer();
 mapEl.addEventListener("mousemove",e=>{
   const r=mapEl.getBoundingClientRect();
   const mx=e.clientX-r.left,my=e.clientY-r.top;
-  let best=null,bd=10;
+  let best=null,bd=9;
   for(const ent of SIM.ents){
     if(ent._dead)continue;
-    const p=entPos(ent,false);
+    const p=entPos(ent);
     if(!p)continue;
     const d=Math.hypot(p.x-mx,p.y-my);
     if(d<bd){bd=d;best=ent;}
@@ -693,10 +696,10 @@ mapEl.addEventListener("touchstart",e=>{
   const t=e.touches[0];if(!t)return;
   const r=mapEl.getBoundingClientRect();
   const mx=t.clientX-r.left,my=t.clientY-r.top;
-  let best=null,bd=16;
+  let best=null,bd=14;
   for(const ent of SIM.ents){
     if(ent._dead)continue;
-    const p=entPos(ent,false);
+    const p=entPos(ent);
     if(!p)continue;
     const d=Math.hypot(p.x-mx,p.y-my);
     if(d<bd){bd=d;best=ent;}
@@ -712,43 +715,43 @@ const STR_W=[[35.9200,-5.6000],[35.9300,-5.5000],[35.9400,-5.4000],[35.9500,-5.3
 const STR_E=STR_W.slice().reverse();
 const COAST=[[35.9050,-5.3000],[35.9120,-5.3300],[35.9160,-5.3600],[35.9170,-5.3800],[35.9150,-5.4000]];
 function seedSim(){
+  /* durante FLUJO: no tirar oleadas; si ya hay base, no regenerar */
+  const preserve=SIM.ents.filter(e=>e.type==="wave"||e.type==="combat");
+  if(FLUJO&&FLUJO.on&&SIM.ents.some(e=>e.type==="migr"||e.type==="police")){
+    return;
+  }
   SIM.ents=[];
   const frontiera=ALL.some(e=>e.cat==="FRONTERA / MIGRACIÓN");
   const zones={};
   ALL.forEach(e=>{const z=(e.zone&&e.zone.length===2)?e.zone:zoneOf(e.title+" "+(e.desc||""));if(z){const k=z[0]+","+z[1];zones[k]=zones[k]||{c:z,n:0};zones[k].n++;}});
   const placed=new Set();
-  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(300,20+z.n*30);spawnStatic("migr",z.c,n,20);placed.add(z.c[0].toFixed(4));}});
-  // poblacion base si hay crisis de frontera
+  Object.values(zones).forEach(z=>{if(z.n>=1&&z.c[0]<35.91){const n=Math.min(140,12+z.n*14);spawnStatic("migr",z.c,n,0.0038);placed.add(z.c[0].toFixed(4));}});
   if(frontiera||Object.keys(zones).length<3){
-    const baseZones=[[[35.8926,-5.3368],220],[[35.8900,-5.3300],140],[[35.9127,-5.3740],180],[[35.8894,-5.3198],150],[[35.8840,-5.3180],110]];
-    baseZones.forEach(([c,n])=>{if(!placed.has(c[0].toFixed(4)))spawnStatic("migr",c,n,16);});
+    const baseZones=[[[35.8926,-5.3368],90],[[35.8900,-5.3300],60],[[35.9127,-5.3740],80],[[35.8894,-5.3198],70],[[35.8840,-5.3180],50]];
+    baseZones.forEach(([c,n])=>{if(!placed.has(c[0].toFixed(4)))spawnStatic("migr",c,n,0.0032);});
   }
-  // lado marroqui
-  const maN=frontiera?500:220;
-  spawnStatic("migr_ma",[35.8384,-5.3863],maN,30);
-  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?160:60,24);
-  spawnStatic("migr_ma",[35.8890,-5.3820],frontiera?120:40,18);
-  spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?140:45,26);
-  // fuerzas espanolas: decenas patrullando
-  spawnStatic("police",[35.8893,-5.3105],24,30);spawnStatic("police",[35.8920,-5.3370],16,26);spawnStatic("police",[35.8936,-5.3544],10,18);spawnStatic("police",[35.8970,-5.3210],8,20);
-  spawnStatic("gc",[35.8875,-5.3090],18,30);spawnStatic("gc",[35.9127,-5.3736],12,22);spawnStatic("gc",[35.8936,-5.3544],10,18);spawnStatic("gc",[35.8970,-5.3210],8,20);
-  spawnStatic("army",[35.8780,-5.3300],16,30);spawnStatic("army",[35.8883,-5.3053],12,24);spawnStatic("army",[35.8936,-5.3544],12,20);spawnStatic("army",[35.9160,-5.3490],10,18);
-  spawnStatic("customs",[35.8940,-5.3110],10,22);
-  // fuerzas marroquis
-  spawnStatic("police_ma",[35.8395,-5.3845],16,26);spawnStatic("police_ma",[35.8910,-5.3800],10,18);
-  spawnStatic("gendarmerie",[35.8370,-5.3880],18,24);spawnStatic("gendarmerie",[35.8910,-5.3800],12,18);
-  spawnStatic("far",[35.8860,-5.3800],20,26);spawnStatic("far",[35.8750,-5.4080],12,22);spawnStatic("far",[35.8900,-5.3800],12,18);
-  // barcos
+  const maN=frontiera?220:100;
+  spawnStatic("migr_ma",[35.8384,-5.3863],maN,0.006);
+  spawnStatic("migr_ma",[35.8750,-5.4080],frontiera?70:30,0.0045);
+  spawnStatic("migr_ma",[35.8890,-5.3820],frontiera?55:20,0.0035);
+  spawnStatic("migr_ma",[35.8360,-5.3900],frontiera?60:22,0.005);
+  spawnStatic("police",[35.8893,-5.3105],14,0.004);spawnStatic("police",[35.8920,-5.3370],10,0.0035);spawnStatic("police",[35.8936,-5.3544],6,0.0025);spawnStatic("police",[35.8970,-5.3210],5,0.0028);
+  spawnStatic("gc",[35.8875,-5.3090],12,0.004);spawnStatic("gc",[35.9127,-5.3736],8,0.003);spawnStatic("gc",[35.8936,-5.3544],6,0.0025);spawnStatic("gc",[35.8970,-5.3210],5,0.0028);
+  spawnStatic("army",[35.8780,-5.3300],10,0.004);spawnStatic("army",[35.8883,-5.3053],8,0.0032);spawnStatic("army",[35.8936,-5.3544],8,0.0028);spawnStatic("army",[35.9160,-5.3490],6,0.0025);
+  spawnStatic("customs",[35.8940,-5.3110],6,0.0028);
+  spawnStatic("police_ma",[35.8395,-5.3845],10,0.004);spawnStatic("police_ma",[35.8910,-5.3800],6,0.0025);
+  spawnStatic("gendarmerie",[35.8370,-5.3880],12,0.0038);spawnStatic("gendarmerie",[35.8910,-5.3800],8,0.0025);
+  spawnStatic("far",[35.8860,-5.3800],12,0.004);spawnStatic("far",[35.8750,-5.4080],8,0.0035);spawnStatic("far",[35.8900,-5.3800],8,0.0025);
   addShip(FERRY,.00011,.1,"ferry");addShip(FERRY,.00011,.45,"ferry");addShip(FERRY.slice().reverse(),.00011,.25,"ferry");
   addShip(COAST,.00014,0,"patrol");addShip(COAST.slice().reverse(),.00012,.5,"patrol");addShip(COAST,.0001,.3,"patrol");
   addShip(STR_W,.00016,.1,"cargo");addShip(STR_W,.00016,.35,"cargo");addShip(STR_W,.00016,.6,"cargo");addShip(STR_W,.00016,.8,"cargo");
   addShip(STR_E,.00016,.2,"cargo");addShip(STR_E,.00016,.5,"cargo");addShip(STR_E,.00016,.7,"cargo");addShip(STR_E,.00016,.9,"cargo");
   addShip([[35.9000,-5.3200],[35.8980,-5.3400],[35.8990,-5.3600]],.0001,.2,"fishing");addShip([[35.9120,-5.3100],[35.9100,-5.3500],[35.9120,-5.3850]],.00009,.6,"fishing");
-  // cruces (fallecidos en el mar)
   [[35.9060,-5.3050],[35.9220,-5.3450]].forEach(c=>SIM.ents.push({type:"cross",home:c}));
   if(ALL.some(e=>e.sev>=8&&/(naufrag|fallecid|muert|patera|mar)/.test(norm(e.title+e.desc)))){
     [[35.9120,-5.2900],[35.9300,-5.3600],[35.9020,-5.3800]].forEach(c=>SIM.ents.push({type:"cross",home:c}));
   }
+  if(preserve.length)SIM.ents.push(...preserve);
 }
 let lastEnt=0;
 function simTick(ts){
@@ -758,18 +761,34 @@ function simTick(ts){
   sctx.clearRect(0,0,W,H);
   if(!SIM.on){requestAnimationFrame(simTick);return;}
   const now=Date.now();
-  // oleadas de entrada si hay crisis de frontera
-  if(ALL.some(e=>e.cat==="FRONTERA / MIGRACIÓN")&&now-SIM.lastWave>4000){
+  // oleadas suaves solo si NO hay replay FLUJO activa
+  if(!FLUJO.on&&ALL.some(e=>e.cat==="FRONTERA / MIGRACIÓN")&&now-SIM.lastWave>7000){
     SIM.lastWave=now;
-    spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(24,48)));
+    spawnWave(Math.random()<.25?BIUTZ:TARAJAL,pick(FLOW_DESTS),Math.floor(rnd(8,16)));
   }
   const draw=[];
   for(const e of SIM.ents){
-    if(e.type==="wave"){e.t+=e.speed*dt;if(e.t>=1){e._dead=true;SIM.ents.push({type:"migr",home:e.dest,amp:14,jx:rnd(-14,14),jy:rnd(-14,14)});continue;}}
+    if(e.type==="wave"){
+      e.t+=e.speed*dt;
+      if(e.t>=1){
+        e._dead=true;
+        const o=geoOff(0.002);
+        SIM.ents.push({type:"migr",home:[e.dest[0]+o[0],e.dest[1]+o[1]]});
+        continue;
+      }
+    }
     if(e.type==="ship"){
       e.t+=e.speed*dt*e.dir;
       if(e.t>=1){if(e.kind==="ferry")e.t=0;else{e.t=1;e.dir=-1;}}
       if(e.t<=0&&e.dir<0){e.t=0;e.dir=1;}
+    }
+    if(e.type==="combat"){
+      e.home[0]+=e.dir*0.00004;
+      if(Math.abs(e.home[0]-35.8924)<0.00035){
+        e._dead=true;
+        const q=ll(e.home);WAR.expl.push({x:q.x,y:q.y,r:rnd(5,12),born:performance.now()});
+        continue;
+      }
     }
     if(SIM.vis[e.type]===0)continue;
     const p=entPos(e);
@@ -783,60 +802,40 @@ function simTick(ts){
     if(WAR.t-WAR.lastSpawn>200&&SIM.ents.filter(e=>e.type==="combat").length<80){
       WAR.lastSpawn=WAR.t;
       const es=Math.random()<.5;
-      SIM.ents.push({type:"combat",home:[es?35.8908:35.8942,rnd(-5.359,-5.346)],dir:es?1:-1,side:es,jx:rnd(-3,3),jy:rnd(-3,3)});
+      SIM.ents.push({type:"combat",home:[es?35.8908:35.8942,rnd(-5.359,-5.346)],dir:es?1:-1,side:es});
     }
     if(WAR.t-WAR.lastExpl>140){
       WAR.lastExpl=WAR.t;
       const p=ll([rnd(35.8895,35.8948),rnd(-5.362,-5.344)]);
-      WAR.expl.push({x:p.x,y:p.y,r:rnd(6,18),born:performance.now()});
+      WAR.expl.push({x:p.x,y:p.y,r:rnd(4,12),born:performance.now()});
     }
-    if(WAR.t-(WAR.lastWave||0)>1500){WAR.lastWave=WAR.t;SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,INLAND,Math.floor(rnd(10,20)));}
+    if(WAR.t-(WAR.lastWave||0)>1500){WAR.lastWave=WAR.t;SIM.lastWave=Date.now();spawnWave(Math.random()<.25?BIUTZ:TARAJAL,pick(FLOW_DESTS),Math.floor(rnd(10,20)));}
   }
-  /* FLUJO DE ENTRADA: rafagas por Tarajal y Biutz con contador */
-  if(FLUJO.on){
-    const fnow=Date.now();
-    if(fnow-FLUJO.last>1500&&FLUJO.count<400){
-      FLUJO.last=fnow;
-      const n1=Math.floor(rnd(30,50));
-      for(let i=0;i<n1;i++)spawnWave(TARAJAL,pick(FLOW_DESTS),1);
-      const n2=Math.floor(rnd(12,24));
-      for(let i=0;i<n2;i++)spawnWave(BIUTZ,pick(FLOW_DESTS),1);
-      FLUJO.count+=n1+n2;
-      $("flowcnt").textContent=FLUJO.count;
-      /* destello en el punto de entrada para marcar el flujo */
-      const fp=ll(TARAJAL);WAR.expl.push({x:fp.x,y:fp.y,r:26,side:true,born:performance.now()});
-      const fp2=ll(BIUTZ);WAR.expl.push({x:fp2.x,y:fp2.y,r:20,side:true,born:performance.now()});
-    }
-    if(FLUJO.count>=400||fnow-FLUJO.start>30000){
-      FLUJO.on=false;
-      $("flowbtn").textContent="▶ FLUJO";$("flowbtn").classList.remove("on");
-      $("flowbadge").style.display="none";
-    }
-  }
+  /* FLUJO DE ENTRADA: ráfagas van por setInterval en startFlujo() */
   // dibujar cruces primero (fondo)
   for(const[e,p]of draw)if(e.type==="cross"){
-    sctx.strokeStyle="rgba(255,255,255,.85)";sctx.lineWidth=2;sctx.shadowColor="#fff";sctx.shadowBlur=6;
-    sctx.beginPath();sctx.moveTo(p.x-5,p.y-5);sctx.lineTo(p.x+5,p.y+5);sctx.moveTo(p.x+5,p.y-5);sctx.lineTo(p.x-5,p.y+5);sctx.stroke();sctx.shadowBlur=0;
+    sctx.strokeStyle="rgba(255,255,255,.75)";sctx.lineWidth=1.2;sctx.shadowColor="#fff";sctx.shadowBlur=3;
+    sctx.beginPath();sctx.moveTo(p.x-3,p.y-3);sctx.lineTo(p.x+3,p.y+3);sctx.moveTo(p.x+3,p.y-3);sctx.lineTo(p.x-3,p.y+3);sctx.stroke();sctx.shadowBlur=0;
   }
   for(const[e,p]of draw){
     if(e.type==="cross")continue;
-    let color="#fff",r=3,sq=false,ship=false;
+    let color="#fff",r=1.5,sq=false,ship=false;
     switch(e.type){
-      case "migr":color="#ff8c00";r=7;break;
-      case "migr_ma":color="#ffd60a";r=7;break;
-      case "wave":color="#ff6d00";r=7;break;
-      case "police":color="#2f6bff";r=8;break;
-      case "gc":color="#00c853";r=8;break;
-      case "army":color="#8d6e63";r=7;sq=true;break;
-      case "customs":color="#fdd835";r=7;break;
-      case "police_ma":color="#ab47bc";r=8;break;
-      case "gendarmerie":color="#ec407a";r=8;break;
-      case "far":color="#5d4037";r=7;sq=true;break;
-      case "ship":ship=true;r=e.kind==="ferry"?9:7;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
+      case "migr":color="#ff8c00";r=1.15;break;
+      case "migr_ma":color="#ffd60a";r=1.15;break;
+      case "wave":color="#ff6d00";r=1.35;break;
+      case "police":color="#2f6bff";r=1.5;break;
+      case "gc":color="#00c853";r=1.5;break;
+      case "army":color="#8d6e63";r=1.35;sq=true;break;
+      case "customs":color="#fdd835";r=1.35;break;
+      case "police_ma":color="#ab47bc";r=1.5;break;
+      case "gendarmerie":color="#ec407a";r=1.5;break;
+      case "far":color="#5d4037";r=1.35;sq=true;break;
+      case "ship":ship=true;r=e.kind==="ferry"?3.2:2.4;color=e.kind==="ferry"?"#00e5ff":"#4dd0e1";break;
       case "combat":{
         const cc=e.side?["#2f6bff","#00c853","#8d6e63"][Math.floor(Math.random()*3)]:["#ab47bc","#5d4037","#ec407a"][Math.floor(Math.random()*3)];
-        sctx.fillStyle=cc;sctx.strokeStyle="rgba(0,0,0,.5)";sctx.lineWidth=1;
-        sctx.fillRect(p.x-4,p.y-4,8,8);sctx.strokeRect(p.x-4,p.y-4,8,8);continue;
+        sctx.fillStyle=cc;
+        sctx.fillRect(p.x-1.2,p.y-1.2,2.4,2.4);continue;
       }
     }
     sctx.beginPath();
@@ -844,21 +843,19 @@ function simTick(ts){
       const n=pathPos(e.route,e.t),q2=pathPos(e.route,Math.min(1,e.t+.02));
       const a=Math.atan2(q2[1]-n[1],q2[0]-n[0]);
       sctx.save();sctx.translate(p.x,p.y);sctx.rotate(a);
-      sctx.fillStyle=color;sctx.strokeStyle="rgba(0,0,0,.5)";sctx.lineWidth=1;
-      sctx.beginPath();sctx.moveTo(r*2,0);sctx.lineTo(-r*1.5,r*.8);sctx.lineTo(-r*.8,0);sctx.lineTo(-r*1.5,-r*.8);sctx.closePath();sctx.fill();sctx.stroke();
+      sctx.fillStyle=color;
+      sctx.beginPath();sctx.moveTo(r*1.6,0);sctx.lineTo(-r,r*.55);sctx.lineTo(-r*.5,0);sctx.lineTo(-r,-r*.55);sctx.closePath();sctx.fill();
       sctx.restore();continue;
     }
-    sctx.fillStyle=color;sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;
-    if(sq){sctx.fillRect(p.x-r,p.y-r,r*2,r*2);sctx.strokeRect(p.x-r,p.y-r,r*2,r*2);}
-    else{
-      if(e.type==="wave"){ /* estela direccional larga para ver el flujo de entrada */
-        const prev=ll(lerp(e.home,e.dest,Math.max(0,e.t-.12)));
-        sctx.strokeStyle="rgba(255,122,0,.75)";sctx.lineWidth=5; sctx.lineCap="round";
-        sctx.beginPath();sctx.moveTo(prev.x,prev.y);sctx.lineTo(p.x,p.y);sctx.stroke();
-        sctx.strokeStyle="rgba(0,0,0,.45)";sctx.lineWidth=1;sctx.lineCap="butt";
-      }
-      sctx.arc(p.x,p.y,r,0,7);sctx.fill();sctx.stroke();
+    /* blip radar: punto mínimo, sin glow gordo (el blur hincha el tamaño visual) */
+    if(e.type==="wave"){
+      const prev=ll(lerp(e.home,e.dest,Math.max(0,e.t-.08)));
+      sctx.strokeStyle="rgba(255,122,0,.4)";sctx.lineWidth=1;sctx.lineCap="round";
+      sctx.beginPath();sctx.moveTo(prev.x,prev.y);sctx.lineTo(p.x,p.y);sctx.stroke();sctx.lineCap="butt";
     }
+    sctx.fillStyle=color;
+    if(sq){sctx.fillRect(p.x-r,p.y-r,r*2,r*2);}
+    else{sctx.beginPath();sctx.arc(p.x,p.y,r,0,7);sctx.fill();}
   }
   /* explosiones del modo guerra / destellos del flujo encima de todo */
   if(WAR.expl.length){
@@ -921,29 +918,52 @@ $("layersbtn").addEventListener("click",function(){
 let WAR={on:false,expl:[],lastExpl:0,lastSpawn:0,lastWave:0,t:0};
 /* ============ FLUJO DE ENTRADA MASIVA (boton PLAY) ============ */
 const FLOW_DESTS=[[35.8894,-5.3198],[35.8926,-5.3368],[35.8900,-5.3300],[35.9167,-5.3833],[35.8890,-5.3000],[35.8840,-5.3180],[35.8970,-5.3210],[35.8870,-5.2900]];
-let FLUJO={on:false,count:0,last:0,start:0};
+let FLUJO={on:false,count:0,last:0,start:0,timer:null};
 function enableSim(){
   SIM.on=true;$("simtoggle").textContent="⏸ SIM ON";$("simtoggle").classList.remove("on");
 }
-$("flowbtn").addEventListener("click",function(){
-  if(!FLUJO.on){
-    FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
-    if(!SIM.on)enableSim();
-    this.textContent="⏸ FLUJO";this.classList.add("on");
-    $("flowbadge").style.display="block";$("flowcnt").textContent="0";
-  }else{
-    FLUJO.on=false;this.textContent="▶ FLUJO";this.classList.remove("on");
-    $("flowbadge").style.display="none";
-  }
-});
-/* modos por URL para demo/verificacion: ?flujo=1 ?guerra=1 */
-if(location.search.includes("flujo")){
-  FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
+function burstFlujo(){
+  FLUJO.last=Date.now();
+  const n1=Math.floor(rnd(40,65));
+  const n2=Math.floor(rnd(20,35));
+  const n3=Math.floor(rnd(12,20));
+  spawnWave(TARAJAL,pick(FLOW_DESTS),n1);
+  spawnWave(BIUTZ,pick(FLOW_DESTS),n2);
+  spawnWave(TARAJAL,[35.8894,-5.3198],n3);
+  FLUJO.count+=n1+n2+n3;
+  $("flowcnt").textContent=String(FLUJO.count);
+  const fp=ll(TARAJAL);WAR.expl.push({x:fp.x,y:fp.y,r:18,born:performance.now()});
+  const fp2=ll(BIUTZ);WAR.expl.push({x:fp2.x,y:fp2.y,r:14,born:performance.now()});
+}
+function stopFlujo(){
+  if(FLUJO.timer){clearInterval(FLUJO.timer);FLUJO.timer=null;}
+  if(!FLUJO.on)return;
+  FLUJO.on=false;
+  $("flowbtn").textContent="▶ FLUJO";$("flowbtn").classList.remove("on");
+  $("flowbadge").style.display="none";
+}
+function startFlujo(){
   enableSim();
+  if(FLUJO.timer){clearInterval(FLUJO.timer);FLUJO.timer=null;}
+  FLUJO.on=true;FLUJO.count=0;FLUJO.last=0;FLUJO.start=Date.now();
+  SIM.ents=SIM.ents.filter(e=>e.type!=="wave");
   $("flowbtn").textContent="⏸ FLUJO";$("flowbtn").classList.add("on");
   $("flowbadge").style.display="block";$("flowcnt").textContent="0";
+  burstFlujo();
+  FLUJO.timer=setInterval(()=>{
+    if(!FLUJO.on){clearInterval(FLUJO.timer);FLUJO.timer=null;return;}
+    if(FLUJO.count>=600||Date.now()-FLUJO.start>50000){stopFlujo();return;}
+    burstFlujo();
+  },850);
 }
-if(location.search.includes("guerra"))toggleWar();
+$("flowbtn").addEventListener("click",function(){
+  if(!FLUJO.on)startFlujo();
+  else stopFlujo();
+});
+function applyUrlModes(){
+  if(location.search.includes("flujo"))startFlujo();
+  if(location.search.includes("guerra")&&!WAR.on)toggleWar();
+}
 function toggleWar(){
   WAR.on=!WAR.on;
   document.body.classList.toggle("war",WAR.on);
@@ -973,6 +993,7 @@ document.addEventListener("keydown",e=>{
   if(WAR.on&&e.key==="Escape")toggleWar();
 });
 seedSim();
+applyUrlModes();
 requestAnimationFrame(simTick);
 
 /* ============ render ============ */
